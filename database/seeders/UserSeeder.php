@@ -2,35 +2,37 @@
 
 namespace Database\Seeders;
 
+use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class UserSeeder extends Seeder
 {
+    /**
+     * Run the database seeds.
+     */
     public function run(): void
     {
-        DB::table('users')->insert([
-            [
-                'nik' => '1234567890123456',
-                'kontak' => '081234567890',
-                'name' => 'Admin System',
-                'role' => 'super_admin',
-                'email' => 'admin@umkm.com',
-                'password' => Hash::make('password'),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'nik' => '2345678901234567',
-                'kontak' => '081234567891',
-                'name' => 'Pemilik UMKM 1',
-                'role' => 'pemilik_umkm',
-                'email' => 'pemilik1@umkm.com',
-                'password' => Hash::make('password'),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
+        // Admin user
+        User::create([
+            'nik' => '1234567890123456',
+            'name' => 'Administrator',
+            'email' => 'admin@provider.com',
+            'password' => Hash::make('coba'),
+            'role' => 'admin',
+            'kontak' => '081234567890',
+            'email_verified_at' => now(),
+        ]);
+
+        // Sample regular user
+        User::create([
+            'nik' => '9876543210987654',
+            'name' => 'User Demo',
+            'email' => 'user@provider.com',
+            'password' => Hash::make('coba'),
+            'role' => 'user',
+            'kontak' => '081987654321',
+            'email_verified_at' => now(),
         ]);
     }
 }
