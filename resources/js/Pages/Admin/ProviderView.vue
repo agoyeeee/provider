@@ -94,7 +94,7 @@ const form = ref({
     y: '',
     foto: null,
     tgl_survey: '',
-    id_user: '',
+    id_user: 'null',
 })
 
 // Selected items
@@ -103,10 +103,10 @@ const detailProvider = ref(null)
 
 // Search and filter
 const searchQuery = ref(props.filters?.search || '')
-const filterProvinsi = ref(props.filters?.provinsi || '')
-const filterKota = ref(props.filters?.kota || '')
-const filterKecamatan = ref(props.filters?.kecamatan || '')
-const filterNProvider = ref(props.filters?.n_provider || '')
+const filterProvinsi = ref(props.filters?.provinsi || 'all')
+const filterKota = ref(props.filters?.kota || 'all')
+const filterKecamatan = ref(props.filters?.kecamatan || 'all')
+const filterNProvider = ref(props.filters?.n_provider || 'all')
 
 // File input ref
 const fotoInput = ref(null)
@@ -128,7 +128,7 @@ const resetForm = () => {
         y: '',
         foto: null,
         tgl_survey: '',
-        id_user: '',
+        id_user: 'null',
     }
     if (fotoInput.value) {
         fotoInput.value.value = ''
@@ -159,7 +159,7 @@ const openEditDialog = (provider) => {
         y: provider.y || '',
         foto: null,
         tgl_survey: provider.tgl_survey || '',
-        id_user: provider.id_user ? String(provider.id_user) : '',
+        id_user: provider.id_user ? String(provider.id_user) : 'null',
     }
     showEditDialog.value = true
 }
@@ -188,8 +188,12 @@ const handleFileChange = (event) => {
 const submitAdd = () => {
     const formData = new FormData()
     Object.keys(form.value).forEach((key) => {
-        if (form.value[key] !== null && form.value[key] !== '') {
-            formData.append(key, form.value[key])
+        const value = form.value[key]
+        // Convert 'null' string to actual null, skip empty strings and null
+        if (value === 'null') {
+            formData.append(key, '')
+        } else if (value !== null && value !== '') {
+            formData.append(key, value)
         }
     })
 
@@ -211,8 +215,12 @@ const submitEdit = () => {
     const formData = new FormData()
     formData.append('_method', 'PUT')
     Object.keys(form.value).forEach((key) => {
-        if (form.value[key] !== null && form.value[key] !== '') {
-            formData.append(key, form.value[key])
+        const value = form.value[key]
+        // Convert 'null' string to actual null, skip empty strings and null
+        if (value === 'null') {
+            formData.append(key, '')
+        } else if (value !== null && value !== '') {
+            formData.append(key, value)
         }
     })
 
@@ -249,10 +257,10 @@ const applyFilters = () => {
         route('admin.provider.index'),
         {
             search: searchQuery.value || undefined,
-            provinsi: filterProvinsi.value || undefined,
-            kota: filterKota.value || undefined,
-            kecamatan: filterKecamatan.value || undefined,
-            n_provider: filterNProvider.value || undefined,
+            provinsi: (filterProvinsi.value && filterProvinsi.value !== 'all') ? filterProvinsi.value : undefined,
+            kota: (filterKota.value && filterKota.value !== 'all') ? filterKota.value : undefined,
+            kecamatan: (filterKecamatan.value && filterKecamatan.value !== 'all') ? filterKecamatan.value : undefined,
+            n_provider: (filterNProvider.value && filterNProvider.value !== 'all') ? filterNProvider.value : undefined,
         },
         {
             preserveState: true,
@@ -264,10 +272,10 @@ const applyFilters = () => {
 // Reset filters
 const resetFilters = () => {
     searchQuery.value = ''
-    filterProvinsi.value = ''
-    filterKota.value = ''
-    filterKecamatan.value = ''
-    filterNProvider.value = ''
+    filterProvinsi.value = 'all'
+    filterKota.value = 'all'
+    filterKecamatan.value = 'all'
+    filterNProvider.value = 'all'
     router.get(route('admin.provider.index'))
 }
 
@@ -431,7 +439,7 @@ const formatDate = (dateStr) => {
                                     <SelectValue placeholder="Pilih Provinsi" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">Semua Provinsi</SelectItem>
+                                    <SelectItem value="all">Semua Provinsi</SelectItem>
                                     <SelectItem
                                         v-for="prov in filterOptions.provinsi"
                                         :key="prov"
@@ -448,7 +456,7 @@ const formatDate = (dateStr) => {
                                     <SelectValue placeholder="Pilih Kota" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">Semua Kota</SelectItem>
+                                    <SelectItem value="all">Semua Kota</SelectItem>
                                     <SelectItem
                                         v-for="kota in filterOptions.kota"
                                         :key="kota"
@@ -465,7 +473,7 @@ const formatDate = (dateStr) => {
                                     <SelectValue placeholder="Pilih Provider" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">Semua Provider</SelectItem>
+                                    <SelectItem value="all">Semua Provider</SelectItem>
                                     <SelectItem
                                         v-for="prov in filterOptions.n_provider"
                                         :key="prov"
@@ -727,7 +735,7 @@ const formatDate = (dateStr) => {
                                     <SelectValue placeholder="Pilih User" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">Tidak ada</SelectItem>
+                                    <SelectItem value="null">Tidak ada</SelectItem>
                                     <SelectItem
                                         v-for="user in users"
                                         :key="user.id"
@@ -910,7 +918,7 @@ const formatDate = (dateStr) => {
                                     <SelectValue placeholder="Pilih User" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">Tidak ada</SelectItem>
+                                    <SelectItem value="null">Tidak ada</SelectItem>
                                     <SelectItem
                                         v-for="user in users"
                                         :key="user.id"

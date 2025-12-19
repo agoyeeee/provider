@@ -29,20 +29,6 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        $user = $request->user();
-        $isPemilikUmkm = $user && $user->role === 'pemilik_umkm';
-        $hasCompleteProfile = false;
-        $hasUmkm = false;
-
-        if ($isPemilikUmkm) {
-            $hasCompleteProfile = ! empty($user->name)
-                && ! empty($user->email)
-                && ! empty($user->nik)
-                && ! empty($user->kontak);
-
-            $hasUmkm = $user->umkm()->exists();
-        }
-
         return [
             ...parent::share($request),
             'auth' => [
@@ -52,8 +38,6 @@ class HandleInertiaRequests extends Middleware
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
             ],
-            'hasUmkm' => $hasUmkm,
-            'hasCompleteProfile' => $hasCompleteProfile,
         ];
     }
 }

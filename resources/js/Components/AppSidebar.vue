@@ -94,8 +94,8 @@ const dashboardTitle = computed(() => {
 <template>
   <Sidebar collapsible="icon">
     <SidebarHeader class="border-b border-sidebar-border">
-      <Link :href="route('admin.dashboard')" class="block">
-        <div class="flex items-center gap-2 px-2 py-2">
+      <Link :href="route('admin.dashboard')" class="block" preserve-scroll>
+        <div class="flex items-center gap-2 px-2 py-2 hover:bg-sidebar-accent transition-colors rounded-md">
           <!-- Logo placeholder -->
           <div
             class="flex w-12 h-12 items-center justify-center rounded-lg bg-primary text-primary-foreground"
@@ -118,15 +118,16 @@ const dashboardTitle = computed(() => {
         <SidebarGroupContent>
           <SidebarMenu>
             <SidebarMenuItem v-for="item in items" :key="item.title">
-              <SidebarMenuButton
-                :as-child="true"
-                :is-active="route().current(item.url) || route().current(item.url + '.*')"
+              <Link
+                :href="route(item.url)"
+                class="peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0"
+                :class="{
+                  'bg-sidebar-accent font-medium text-sidebar-accent-foreground': route().current(item.url) || route().current(item.url + '.*')
+                }"
               >
-                <Link :href="route(item.url)" class="flex items-center gap-2">
-                  <component :is="item.icon" class="h-4 w-4" />
-                  <span>{{ item.title }}</span>
-                </Link>
-              </SidebarMenuButton>
+                <component :is="item.icon" class="h-4 w-4" />
+                <span>{{ item.title }}</span>
+              </Link>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroupContent>

@@ -7,9 +7,22 @@ use App\Http\Controllers\ProviderController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
 
-// Landing page - redirect to login
+// Landing page - redirect based on authentication
 Route::get('/', function () {
+    if (Auth::check()) {
+        $user = Auth::user();
+
+        // Redirect based on role
+        if (in_array($user->role, ['admin', 'super_admin'])) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        // For other roles, redirect to profile
+        return redirect()->route('profile.edit');
+    }
+
     return redirect()->route('login');
 })->name('landing');
 

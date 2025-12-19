@@ -14,11 +14,11 @@ class CheckSuperAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (! Auth::check()) {
-            return redirect()->route('login');
-        }
+        // Auth middleware should handle authentication
+        // This middleware only checks role
+        $user = Auth::user();
 
-        if (Auth::user()->role !== 'super_admin') {
+        if (! $user || $user->role !== 'super_admin') {
             abort(403, 'Unauthorized access. Only Super Admin can access this page.');
         }
 
