@@ -1,5 +1,5 @@
 <script setup>
-import { SidebarProvider, SidebarTrigger } from "@/Components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/Components/ui/sidebar";
 import AppSidebar from "@/Components/AppSidebar.vue";
 import {
   Breadcrumb,
@@ -9,7 +9,11 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/Components/ui/breadcrumb";
-import { Link } from '@inertiajs/vue3';
+import { Separator } from "@/Components/ui/separator";
+import { Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
+
+const page = usePage();
 
 defineProps({
   breadcrumbs: {
@@ -17,6 +21,9 @@ defineProps({
     default: () => []
   }
 });
+
+// Get current user
+const user = computed(() => page.props.auth?.user);
 </script>
 
 <template>
@@ -24,16 +31,20 @@ defineProps({
     <!-- Sidebar -->
     <AppSidebar />
 
-    <!-- Main Content -->
-    <div class="flex-1">
-      <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
-        <!-- Simple Header with Toggle and Breadcrumb -->
-        <header class="border-b bg-white dark:bg-gray-800">
-          <div class="flex h-12 items-center gap-4 px-6">
-            <!-- Trigger untuk toggle sidebar -->
-            <SidebarTrigger />
+    <!-- Main Content Area -->
+    <SidebarInset class="flex flex-col">
+      <!-- Top Header / Navbar -->
+      <header class="sticky top-0 z-50 flex h-14 shrink-0 items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
+        <div class="flex items-center gap-2">
+          <!-- Sidebar Toggle -->
+          <SidebarTrigger class="-ml-1" />
+          <Separator orientation="vertical" class="h-4" />
+        </div>
 
-            <!-- Breadcrumb -->
+        <!-- Header Content Area -->
+        <div class="flex flex-1 items-center justify-between gap-4 pl-4">
+          <!-- Breadcrumb or Custom Header -->
+          <div class="flex-1">
             <Breadcrumb v-if="breadcrumbs.length > 0">
               <BreadcrumbList>
                 <template v-for="(breadcrumb, index) in breadcrumbs" :key="breadcrumb.title">
@@ -48,18 +59,16 @@ defineProps({
               </BreadcrumbList>
             </Breadcrumb>
 
-            <!-- Fallback to slot header if no breadcrumbs -->
-            <div v-else-if="$slots.header" class="text-xl font-semibold text-gray-800 dark:text-gray-200">
-              <slot name="header" />
-            </div>
+            <!-- Custom Header Slot -->
+            <slot v-else name="header" />
           </div>
-        </header>
+        </div>
+      </header>
 
-        <!-- Page Content -->
-        <main>
-          <slot />
-        </main>
-      </div>
-    </div>
+      <!-- Page Content -->
+      <main class="flex-1 overflow-auto bg-muted/30 pt-0">
+        <slot />
+      </main>
+    </SidebarInset>
   </SidebarProvider>
 </template>

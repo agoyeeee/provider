@@ -100,19 +100,15 @@ const statsCards = computed(() => [
 </script>
 
 <template>
+
     <Head title="Dashboard" />
 
     <DashboardLayout>
         <template #header>
-            <div class="flex items-center justify-between">
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h2>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        Selamat datang di Panel Admin Data Provider
-                    </p>
-                </div>
+            <div class="flex items-center justify-between w-full">
+                <h1 class="text-lg font-semibold">Dashboard</h1>
                 <Link :href="route('admin.provider.index')">
-                    <Button>
+                    <Button size="sm">
                         <Wifi class="w-4 h-4 mr-2" />
                         Kelola Provider
                     </Button>
@@ -120,7 +116,7 @@ const statsCards = computed(() => [
             </div>
         </template>
 
-        <div class="py-6">
+        <div class="p-6">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
                 <!-- Stats Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -133,12 +129,10 @@ const statsCards = computed(() => [
                                     </p>
                                     <p class="text-3xl font-bold mt-2">{{ stat.value }}</p>
                                 </div>
-                                <div
-                                    :class="[
-                                        'rounded-full p-3',
-                                        stat.bgColor,
-                                    ]"
-                                >
+                                <div :class="[
+                                    'rounded-full p-3',
+                                    stat.bgColor,
+                                ]">
                                     <component :is="stat.icon" :class="['w-6 h-6', stat.color]" />
                                 </div>
                             </div>
@@ -160,21 +154,15 @@ const statsCards = computed(() => [
                         </CardHeader>
                         <CardContent>
                             <div v-if="provider_by_provinsi.length > 0" class="space-y-3">
-                                <div
-                                    v-for="item in provider_by_provinsi"
-                                    :key="item.name"
-                                    class="flex items-center justify-between"
-                                >
+                                <div v-for="item in provider_by_provinsi" :key="item.name"
+                                    class="flex items-center justify-between">
                                     <span class="text-sm font-medium">{{ item.name }}</span>
                                     <div class="flex items-center gap-2">
                                         <div class="w-32 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                            <div
-                                                class="h-2 rounded-full"
-                                                :style="{
-                                                    width: `${(item.value / stats.total_provider) * 100}%`,
-                                                    backgroundColor: item.color,
-                                                }"
-                                            ></div>
+                                            <div class="h-2 rounded-full" :style="{
+                                                width: `${(item.value / stats.total_provider) * 100}%`,
+                                                backgroundColor: item.color,
+                                            }"></div>
                                         </div>
                                         <Badge variant="secondary">{{ item.value }}</Badge>
                                     </div>
@@ -199,21 +187,15 @@ const statsCards = computed(() => [
                         </CardHeader>
                         <CardContent>
                             <div v-if="provider_by_name.length > 0" class="space-y-3">
-                                <div
-                                    v-for="item in provider_by_name"
-                                    :key="item.name"
-                                    class="flex items-center justify-between"
-                                >
+                                <div v-for="item in provider_by_name" :key="item.name"
+                                    class="flex items-center justify-between">
                                     <span class="text-sm font-medium">{{ item.name }}</span>
                                     <div class="flex items-center gap-2">
                                         <div class="w-32 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                            <div
-                                                class="h-2 rounded-full"
-                                                :style="{
-                                                    width: `${(item.value / stats.total_provider) * 100}%`,
-                                                    backgroundColor: item.color,
-                                                }"
-                                            ></div>
+                                            <div class="h-2 rounded-full" :style="{
+                                                width: `${(item.value / stats.total_provider) * 100}%`,
+                                                backgroundColor: item.color,
+                                            }"></div>
                                         </div>
                                         <Badge variant="secondary">{{ item.value }}</Badge>
                                     </div>
@@ -258,11 +240,8 @@ const statsCards = computed(() => [
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                <TableRow
-                                    v-for="provider in recent_providers"
-                                    :key="provider.id"
-                                    class="hover:bg-gray-50 dark:hover:bg-gray-800"
-                                >
+                                <TableRow v-for="provider in recent_providers" :key="provider.id"
+                                    class="hover:bg-gray-50 dark:hover:bg-gray-800">
                                     <TableCell class="font-mono text-sm">
                                         {{ provider.fid || '-' }}
                                     </TableCell>

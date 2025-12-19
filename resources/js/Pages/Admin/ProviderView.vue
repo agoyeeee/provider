@@ -352,26 +352,20 @@ const formatDate = (dateStr) => {
 </script>
 
 <template>
+
     <Head title="Data Provider" />
     <Toaster />
 
     <DashboardLayout>
         <template #header>
-            <div class="flex items-center justify-between">
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                        Data Provider
-                    </h2>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        Kelola data provider dan utilitas
-                    </p>
-                </div>
+            <div class="flex items-center justify-between w-full">
+                <h1 class="text-lg font-semibold">Data Provider</h1>
                 <div class="flex gap-2">
-                    <Button variant="outline" @click="exportData">
+                    <Button variant="outline" size="sm" @click="exportData">
                         <Download class="w-4 h-4 mr-2" />
                         Export CSV
                     </Button>
-                    <Button @click="openAddDialog">
+                    <Button size="sm" @click="openAddDialog">
                         <Plus class="w-4 h-4 mr-2" />
                         Tambah Provider
                     </Button>
@@ -422,14 +416,9 @@ const formatDate = (dateStr) => {
                             <!-- Search -->
                             <div class="md:col-span-2">
                                 <div class="relative">
-                                    <Search
-                                        class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
-                                    />
-                                    <Input
-                                        v-model="searchQuery"
-                                        placeholder="Cari FID, Provider, ODP..."
-                                        class="pl-10"
-                                    />
+                                    <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <Input v-model="searchQuery" placeholder="Cari FID, Provider, ODP..."
+                                        class="pl-10" />
                                 </div>
                             </div>
 
@@ -440,11 +429,7 @@ const formatDate = (dateStr) => {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">Semua Provinsi</SelectItem>
-                                    <SelectItem
-                                        v-for="prov in filterOptions.provinsi"
-                                        :key="prov"
-                                        :value="prov"
-                                    >
+                                    <SelectItem v-for="prov in filterOptions.provinsi" :key="prov" :value="prov">
                                         {{ prov }}
                                     </SelectItem>
                                 </SelectContent>
@@ -457,11 +442,7 @@ const formatDate = (dateStr) => {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">Semua Kota</SelectItem>
-                                    <SelectItem
-                                        v-for="kota in filterOptions.kota"
-                                        :key="kota"
-                                        :value="kota"
-                                    >
+                                    <SelectItem v-for="kota in filterOptions.kota" :key="kota" :value="kota">
                                         {{ kota }}
                                     </SelectItem>
                                 </SelectContent>
@@ -474,11 +455,7 @@ const formatDate = (dateStr) => {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">Semua Provider</SelectItem>
-                                    <SelectItem
-                                        v-for="prov in filterOptions.n_provider"
-                                        :key="prov"
-                                        :value="prov"
-                                    >
+                                    <SelectItem v-for="prov in filterOptions.n_provider" :key="prov" :value="prov">
                                         {{ prov }}
                                     </SelectItem>
                                 </SelectContent>
@@ -513,16 +490,13 @@ const formatDate = (dateStr) => {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    <TableRow
-                                        v-for="(provider, index) in providers"
-                                        :key="provider.id"
-                                        class="hover:bg-gray-50 dark:hover:bg-gray-800"
-                                    >
+                                    <TableRow v-for="(provider, index) in providers" :key="provider.id"
+                                        class="hover:bg-gray-50 dark:hover:bg-gray-800">
                                         <TableCell class="font-medium">{{ index + 1 }}</TableCell>
                                         <TableCell>
                                             <span class="font-mono text-sm">{{
                                                 provider.fid || '-'
-                                            }}</span>
+                                                }}</span>
                                         </TableCell>
                                         <TableCell>{{ provider.provinsi || '-' }}</TableCell>
                                         <TableCell>{{ provider.kota || '-' }}</TableCell>
@@ -536,44 +510,29 @@ const formatDate = (dateStr) => {
                                         <TableCell>
                                             <span class="font-mono text-sm">{{
                                                 provider.odp || '-'
-                                            }}</span>
+                                                }}</span>
                                         </TableCell>
                                         <TableCell>{{ formatDate(provider.tgl_survey) }}</TableCell>
                                         <TableCell>
                                             <div class="flex items-center justify-center gap-2">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    @click="openDetailDialog(provider)"
-                                                    title="Lihat Detail"
-                                                >
+                                                <Button variant="ghost" size="icon" @click="openDetailDialog(provider)"
+                                                    title="Lihat Detail">
                                                     <Eye class="w-4 h-4" />
                                                 </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    @click="openEditDialog(provider)"
-                                                    title="Edit"
-                                                >
+                                                <Button variant="ghost" size="icon" @click="openEditDialog(provider)"
+                                                    title="Edit">
                                                     <Pencil class="w-4 h-4" />
                                                 </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
+                                                <Button variant="ghost" size="icon"
                                                     class="text-red-500 hover:text-red-700"
-                                                    @click="openDeleteDialog(provider)"
-                                                    title="Hapus"
-                                                >
+                                                    @click="openDeleteDialog(provider)" title="Hapus">
                                                     <Trash2 class="w-4 h-4" />
                                                 </Button>
                                             </div>
                                         </TableCell>
                                     </TableRow>
                                     <TableRow v-if="providers.length === 0">
-                                        <TableCell
-                                            colspan="10"
-                                            class="text-center py-8 text-gray-500"
-                                        >
+                                        <TableCell colspan="10" class="text-center py-8 text-gray-500">
                                             Tidak ada data provider
                                         </TableCell>
                                     </TableRow>
@@ -605,120 +564,67 @@ const formatDate = (dateStr) => {
                         <!-- Provinsi -->
                         <div class="space-y-2">
                             <Label for="add-provinsi">Provinsi *</Label>
-                            <Input
-                                id="add-provinsi"
-                                v-model="form.provinsi"
-                                placeholder="Nama Provinsi"
-                                required
-                            />
+                            <Input id="add-provinsi" v-model="form.provinsi" placeholder="Nama Provinsi" required />
                         </div>
 
                         <!-- Kota -->
                         <div class="space-y-2">
                             <Label for="add-kota">Kota *</Label>
-                            <Input
-                                id="add-kota"
-                                v-model="form.kota"
-                                placeholder="Nama Kota"
-                                required
-                            />
+                            <Input id="add-kota" v-model="form.kota" placeholder="Nama Kota" required />
                         </div>
 
                         <!-- Kecamatan -->
                         <div class="space-y-2">
                             <Label for="add-kecamatan">Kecamatan *</Label>
-                            <Input
-                                id="add-kecamatan"
-                                v-model="form.kecamatan"
-                                placeholder="Nama Kecamatan"
-                                required
-                            />
+                            <Input id="add-kecamatan" v-model="form.kecamatan" placeholder="Nama Kecamatan" required />
                         </div>
 
                         <!-- Kelurahan -->
                         <div class="space-y-2">
                             <Label for="add-kelurahan">Kelurahan *</Label>
-                            <Input
-                                id="add-kelurahan"
-                                v-model="form.kelurahan"
-                                placeholder="Nama Kelurahan"
-                                required
-                            />
+                            <Input id="add-kelurahan" v-model="form.kelurahan" placeholder="Nama Kelurahan" required />
                         </div>
 
                         <!-- K Ref Wil -->
                         <div class="space-y-2">
                             <Label for="add-k_ref_wil">K Ref Wil</Label>
-                            <Input
-                                id="add-k_ref_wil"
-                                v-model="form.k_ref_wil"
-                                placeholder="Kode Referensi Wilayah"
-                            />
+                            <Input id="add-k_ref_wil" v-model="form.k_ref_wil" placeholder="Kode Referensi Wilayah" />
                         </div>
 
                         <!-- Utilitas -->
                         <div class="space-y-2">
                             <Label for="add-utilitas">Utilitas</Label>
-                            <Input
-                                id="add-utilitas"
-                                v-model="form.utilitas"
-                                placeholder="Jenis Utilitas"
-                            />
+                            <Input id="add-utilitas" v-model="form.utilitas" placeholder="Jenis Utilitas" />
                         </div>
 
                         <!-- N Provider -->
                         <div class="space-y-2">
                             <Label for="add-n_provider">Nama Provider *</Label>
-                            <Input
-                                id="add-n_provider"
-                                v-model="form.n_provider"
-                                placeholder="Nama Provider"
-                                required
-                            />
+                            <Input id="add-n_provider" v-model="form.n_provider" placeholder="Nama Provider" required />
                         </div>
 
                         <!-- ODP -->
                         <div class="space-y-2">
                             <Label for="add-odp">ODP</Label>
-                            <Input
-                                id="add-odp"
-                                v-model="form.odp"
-                                placeholder="Optical Distribution Point"
-                            />
+                            <Input id="add-odp" v-model="form.odp" placeholder="Optical Distribution Point" />
                         </div>
 
                         <!-- SJALU 21 -->
                         <div class="space-y-2">
                             <Label for="add-sjalu_21">SJALU 21</Label>
-                            <Input
-                                id="add-sjalu_21"
-                                v-model="form.sjalu_21"
-                                placeholder="SJALU 21"
-                            />
+                            <Input id="add-sjalu_21" v-model="form.sjalu_21" placeholder="SJALU 21" />
                         </div>
 
                         <!-- X (Longitude) -->
                         <div class="space-y-2">
                             <Label for="add-x">X (Longitude)</Label>
-                            <Input
-                                id="add-x"
-                                v-model="form.x"
-                                type="number"
-                                step="any"
-                                placeholder="Longitude"
-                            />
+                            <Input id="add-x" v-model="form.x" type="number" step="any" placeholder="Longitude" />
                         </div>
 
                         <!-- Y (Latitude) -->
                         <div class="space-y-2">
                             <Label for="add-y">Y (Latitude)</Label>
-                            <Input
-                                id="add-y"
-                                v-model="form.y"
-                                type="number"
-                                step="any"
-                                placeholder="Latitude"
-                            />
+                            <Input id="add-y" v-model="form.y" type="number" step="any" placeholder="Latitude" />
                         </div>
 
                         <!-- Tanggal Survey -->
@@ -736,11 +642,7 @@ const formatDate = (dateStr) => {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="null">Tidak ada</SelectItem>
-                                    <SelectItem
-                                        v-for="user in users"
-                                        :key="user.id"
-                                        :value="String(user.id)"
-                                    >
+                                    <SelectItem v-for="user in users" :key="user.id" :value="String(user.id)">
                                         {{ user.name }}
                                     </SelectItem>
                                 </SelectContent>
@@ -750,13 +652,8 @@ const formatDate = (dateStr) => {
                         <!-- Foto -->
                         <div class="space-y-2 md:col-span-2">
                             <Label for="add-foto">Foto</Label>
-                            <Input
-                                id="add-foto"
-                                ref="fotoInput"
-                                type="file"
-                                accept="image/*"
-                                @change="handleFileChange"
-                            />
+                            <Input id="add-foto" ref="fotoInput" type="file" accept="image/*"
+                                @change="handleFileChange" />
                         </div>
                     </div>
 
@@ -788,120 +685,68 @@ const formatDate = (dateStr) => {
                         <!-- Provinsi -->
                         <div class="space-y-2">
                             <Label for="edit-provinsi">Provinsi *</Label>
-                            <Input
-                                id="edit-provinsi"
-                                v-model="form.provinsi"
-                                placeholder="Nama Provinsi"
-                                required
-                            />
+                            <Input id="edit-provinsi" v-model="form.provinsi" placeholder="Nama Provinsi" required />
                         </div>
 
                         <!-- Kota -->
                         <div class="space-y-2">
                             <Label for="edit-kota">Kota *</Label>
-                            <Input
-                                id="edit-kota"
-                                v-model="form.kota"
-                                placeholder="Nama Kota"
-                                required
-                            />
+                            <Input id="edit-kota" v-model="form.kota" placeholder="Nama Kota" required />
                         </div>
 
                         <!-- Kecamatan -->
                         <div class="space-y-2">
                             <Label for="edit-kecamatan">Kecamatan *</Label>
-                            <Input
-                                id="edit-kecamatan"
-                                v-model="form.kecamatan"
-                                placeholder="Nama Kecamatan"
-                                required
-                            />
+                            <Input id="edit-kecamatan" v-model="form.kecamatan" placeholder="Nama Kecamatan" required />
                         </div>
 
                         <!-- Kelurahan -->
                         <div class="space-y-2">
                             <Label for="edit-kelurahan">Kelurahan *</Label>
-                            <Input
-                                id="edit-kelurahan"
-                                v-model="form.kelurahan"
-                                placeholder="Nama Kelurahan"
-                                required
-                            />
+                            <Input id="edit-kelurahan" v-model="form.kelurahan" placeholder="Nama Kelurahan" required />
                         </div>
 
                         <!-- K Ref Wil -->
                         <div class="space-y-2">
                             <Label for="edit-k_ref_wil">K Ref Wil</Label>
-                            <Input
-                                id="edit-k_ref_wil"
-                                v-model="form.k_ref_wil"
-                                placeholder="Kode Referensi Wilayah"
-                            />
+                            <Input id="edit-k_ref_wil" v-model="form.k_ref_wil" placeholder="Kode Referensi Wilayah" />
                         </div>
 
                         <!-- Utilitas -->
                         <div class="space-y-2">
                             <Label for="edit-utilitas">Utilitas</Label>
-                            <Input
-                                id="edit-utilitas"
-                                v-model="form.utilitas"
-                                placeholder="Jenis Utilitas"
-                            />
+                            <Input id="edit-utilitas" v-model="form.utilitas" placeholder="Jenis Utilitas" />
                         </div>
 
                         <!-- N Provider -->
                         <div class="space-y-2">
                             <Label for="edit-n_provider">Nama Provider *</Label>
-                            <Input
-                                id="edit-n_provider"
-                                v-model="form.n_provider"
-                                placeholder="Nama Provider"
-                                required
-                            />
+                            <Input id="edit-n_provider" v-model="form.n_provider" placeholder="Nama Provider"
+                                required />
                         </div>
 
                         <!-- ODP -->
                         <div class="space-y-2">
                             <Label for="edit-odp">ODP</Label>
-                            <Input
-                                id="edit-odp"
-                                v-model="form.odp"
-                                placeholder="Optical Distribution Point"
-                            />
+                            <Input id="edit-odp" v-model="form.odp" placeholder="Optical Distribution Point" />
                         </div>
 
                         <!-- SJALU 21 -->
                         <div class="space-y-2">
                             <Label for="edit-sjalu_21">SJALU 21</Label>
-                            <Input
-                                id="edit-sjalu_21"
-                                v-model="form.sjalu_21"
-                                placeholder="SJALU 21"
-                            />
+                            <Input id="edit-sjalu_21" v-model="form.sjalu_21" placeholder="SJALU 21" />
                         </div>
 
                         <!-- X (Longitude) -->
                         <div class="space-y-2">
                             <Label for="edit-x">X (Longitude)</Label>
-                            <Input
-                                id="edit-x"
-                                v-model="form.x"
-                                type="number"
-                                step="any"
-                                placeholder="Longitude"
-                            />
+                            <Input id="edit-x" v-model="form.x" type="number" step="any" placeholder="Longitude" />
                         </div>
 
                         <!-- Y (Latitude) -->
                         <div class="space-y-2">
                             <Label for="edit-y">Y (Latitude)</Label>
-                            <Input
-                                id="edit-y"
-                                v-model="form.y"
-                                type="number"
-                                step="any"
-                                placeholder="Latitude"
-                            />
+                            <Input id="edit-y" v-model="form.y" type="number" step="any" placeholder="Latitude" />
                         </div>
 
                         <!-- Tanggal Survey -->
@@ -919,11 +764,7 @@ const formatDate = (dateStr) => {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="null">Tidak ada</SelectItem>
-                                    <SelectItem
-                                        v-for="user in users"
-                                        :key="user.id"
-                                        :value="String(user.id)"
-                                    >
+                                    <SelectItem v-for="user in users" :key="user.id" :value="String(user.id)">
                                         {{ user.name }}
                                     </SelectItem>
                                 </SelectContent>
@@ -934,18 +775,10 @@ const formatDate = (dateStr) => {
                         <div class="space-y-2 md:col-span-2">
                             <Label for="edit-foto">Foto</Label>
                             <div v-if="selectedProvider?.foto_url" class="mb-2">
-                                <img
-                                    :src="selectedProvider.foto_url"
-                                    alt="Current photo"
-                                    class="h-24 w-auto rounded-lg object-cover"
-                                />
+                                <img :src="selectedProvider.foto_url" alt="Current photo"
+                                    class="h-24 w-auto rounded-lg object-cover" />
                             </div>
-                            <Input
-                                id="edit-foto"
-                                type="file"
-                                accept="image/*"
-                                @change="handleFileChange"
-                            />
+                            <Input id="edit-foto" type="file" accept="image/*" @change="handleFileChange" />
                             <p class="text-xs text-gray-500">
                                 Biarkan kosong jika tidak ingin mengubah foto
                             </p>
@@ -1001,11 +834,8 @@ const formatDate = (dateStr) => {
                 <div v-if="detailProvider" class="space-y-4">
                     <!-- Foto -->
                     <div v-if="detailProvider.foto_url" class="flex justify-center">
-                        <img
-                            :src="detailProvider.foto_url"
-                            alt="Provider photo"
-                            class="max-h-48 rounded-lg object-cover"
-                        />
+                        <img :src="detailProvider.foto_url" alt="Provider photo"
+                            class="max-h-48 rounded-lg object-cover" />
                     </div>
 
                     <!-- Info Grid -->
@@ -1070,11 +900,8 @@ const formatDate = (dateStr) => {
 
                     <!-- Map Link -->
                     <div v-if="detailProvider.x && detailProvider.y" class="pt-4">
-                        <a
-                            :href="`https://www.google.com/maps?q=${detailProvider.y},${detailProvider.x}`"
-                            target="_blank"
-                            class="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800"
-                        >
+                        <a :href="`https://www.google.com/maps?q=${detailProvider.y},${detailProvider.x}`"
+                            target="_blank" class="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800">
                             <MapPin class="w-4 h-4" />
                             Lihat di Google Maps
                         </a>
