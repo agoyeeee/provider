@@ -22,6 +22,13 @@ import {
     TableRow,
 } from '@/Components/ui/table'
 import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/Components/ui/dropdown-menu'
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -44,6 +51,7 @@ import {
     X,
     Download,
     Eye,
+    MoreVertical,
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -58,9 +66,8 @@ const props = defineProps({
     filterOptions: {
         type: Object,
         default: () => ({
-            provinsi: [],
-            kota: [],
             kecamatan: [],
+            kelurahan: [],
             n_provider: [],
         }),
     },
@@ -77,6 +84,7 @@ const showAddDialog = ref(false)
 const showEditDialog = ref(false)
 const showDeleteDialog = ref(false)
 const showDetailDialog = ref(false)
+const importInput = ref(null)
 
 // Form data
 const form = ref({
@@ -89,7 +97,8 @@ const form = ref({
     utilitas: '',
     n_provider: '',
     odp: '',
-    sjalu_21: '',
+    sijali: '',
+    sijali_link: '',
     x: '',
     y: '',
     foto: null,
@@ -103,9 +112,8 @@ const detailProvider = ref(null)
 
 // Search and filter
 const searchQuery = ref(props.filters?.search || '')
-const filterProvinsi = ref(props.filters?.provinsi || 'all')
-const filterKota = ref(props.filters?.kota || 'all')
 const filterKecamatan = ref(props.filters?.kecamatan || 'all')
+const filterKelurahan = ref(props.filters?.kelurahan || 'all')
 const filterNProvider = ref(props.filters?.n_provider || 'all')
 
 // File input ref
@@ -123,7 +131,8 @@ const resetForm = () => {
         utilitas: '',
         n_provider: '',
         odp: '',
-        sjalu_21: '',
+        sijali: '',
+        sijali_link: '',
         x: '',
         y: '',
         foto: null,
@@ -154,7 +163,8 @@ const openEditDialog = (provider) => {
         utilitas: provider.utilitas || '',
         n_provider: provider.n_provider || '',
         odp: provider.odp || '',
-        sjalu_21: provider.sjalu_21 || '',
+        sijali: provider.sijali || '',
+        sijali_link: provider.sijali_link || '',
         x: provider.x || '',
         y: provider.y || '',
         foto: null,
@@ -182,6 +192,35 @@ const handleFileChange = (event) => {
     if (file) {
         form.value.foto = file
     }
+}
+
+// Import providers from XLSX
+const triggerImport = () => {
+    importInput.value?.click()
+}
+
+const handleImport = (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    router.post(route('admin.provider.import'), formData, {
+        forceFormData: true,
+        onSuccess: () => {
+            toast.success('Import selesai')
+        },
+        onError: (errors) => {
+            const messages = Object.values(errors || {}).flat().join(', ')
+            toast.error(messages || 'Import gagal')
+        },
+        onFinish: () => {
+            if (importInput.value) {
+                importInput.value.value = ''
+            }
+        },
+    })
 }
 
 // Submit add form
@@ -257,9 +296,8 @@ const applyFilters = () => {
         route('admin.provider.index'),
         {
             search: searchQuery.value || undefined,
-            provinsi: (filterProvinsi.value && filterProvinsi.value !== 'all') ? filterProvinsi.value : undefined,
-            kota: (filterKota.value && filterKota.value !== 'all') ? filterKota.value : undefined,
             kecamatan: (filterKecamatan.value && filterKecamatan.value !== 'all') ? filterKecamatan.value : undefined,
+            kelurahan: (filterKelurahan.value && filterKelurahan.value !== 'all') ? filterKelurahan.value : undefined,
             n_provider: (filterNProvider.value && filterNProvider.value !== 'all') ? filterNProvider.value : undefined,
         },
         {
@@ -272,9 +310,8 @@ const applyFilters = () => {
 // Reset filters
 const resetFilters = () => {
     searchQuery.value = ''
-    filterProvinsi.value = 'all'
-    filterKota.value = 'all'
     filterKecamatan.value = 'all'
+    filterKelurahan.value = 'all'
     filterNProvider.value = 'all'
     router.get(route('admin.provider.index'))
 }
@@ -301,7 +338,8 @@ const exportData = () => {
         'Utilitas',
         'N Provider',
         'ODP',
-        'SJALU 21',
+        'Sijali',
+        'Sijali Link',
         'X',
         'Y',
         'Tgl Survey',
@@ -316,7 +354,8 @@ const exportData = () => {
         p.utilitas || '',
         p.n_provider || '',
         p.odp || '',
-        p.sjalu_21 || '',
+        p.sijali || '',
+        p.sijali_link || '',
         p.x || '',
         p.y || '',
         p.tgl_survey || '',
@@ -334,10 +373,28 @@ const exportData = () => {
 // Stats
 const stats = computed(() => ({
     total: props.providers.length,
-    totalProvinsi: [...new Set(props.providers.map((p) => p.provinsi).filter(Boolean))].length,
-    totalKota: [...new Set(props.providers.map((p) => p.kota).filter(Boolean))].length,
+    totalKecamatan: [...new Set(props.providers.map((p) => p.kecamatan).filter(Boolean))].length,
+    totalKelurahan: [...new Set(props.providers.map((p) => p.kelurahan).filter(Boolean))].length,
     totalProvider: [...new Set(props.providers.map((p) => p.n_provider).filter(Boolean))].length,
 }))
+
+// Pagination
+const pageSizeOptions = [5, 10, 25, 50]
+const pageSize = ref(10)
+const currentPage = ref(1)
+
+const totalPages = computed(() =>
+    Math.max(1, Math.ceil((props.providers.length || 1) / pageSize.value))
+)
+
+const paginatedProviders = computed(() => {
+    const start = (currentPage.value - 1) * pageSize.value
+    return props.providers.slice(start, start + pageSize.value)
+})
+
+watch(() => props.providers.length, () => {
+    currentPage.value = 1
+})
 
 // Format date
 const formatDate = (dateStr) => {
@@ -361,6 +418,9 @@ const formatDate = (dateStr) => {
             <div class="flex items-center justify-between w-full">
                 <h1 class="text-lg font-semibold">Data Provider</h1>
                 <div class="flex gap-2">
+                    <Button variant="outline" size="sm" @click="triggerImport">
+                        Import CSV
+                    </Button>
                     <Button variant="outline" size="sm" @click="exportData">
                         <Download class="w-4 h-4 mr-2" />
                         Export CSV
@@ -372,6 +432,13 @@ const formatDate = (dateStr) => {
                 </div>
             </div>
         </template>
+        <input
+            ref="importInput"
+            type="file"
+            accept=".xlsx,.xls"
+            class="hidden"
+            @change="handleImport"
+        />
 
         <div class="py-6">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
@@ -380,25 +447,25 @@ const formatDate = (dateStr) => {
                     <Card>
                         <CardHeader class="pb-2">
                             <CardDescription>Total Data</CardDescription>
-                            <CardTitle class="text-3xl">{{ stats.total }}</CardTitle>
+                    <CardTitle class="text-3xl">{{ stats.total }}</CardTitle>
                         </CardHeader>
                     </Card>
                     <Card>
                         <CardHeader class="pb-2">
-                            <CardDescription>Jumlah Provinsi</CardDescription>
-                            <CardTitle class="text-3xl">{{ stats.totalProvinsi }}</CardTitle>
+                            <CardDescription>Jumlah Kecamatan</CardDescription>
+                            <CardTitle class="text-3xl">{{ stats.totalKecamatan }}</CardTitle>
                         </CardHeader>
                     </Card>
                     <Card>
                         <CardHeader class="pb-2">
-                            <CardDescription>Jumlah Kota</CardDescription>
-                            <CardTitle class="text-3xl">{{ stats.totalKota }}</CardTitle>
+                            <CardDescription>Jumlah Kelurahan</CardDescription>
+                            <CardTitle class="text-3xl">{{ stats.totalKelurahan }}</CardTitle>
                         </CardHeader>
                     </Card>
                     <Card>
                         <CardHeader class="pb-2">
                             <CardDescription>Jumlah Provider</CardDescription>
-                            <CardTitle class="text-3xl">{{ stats.totalProvider }}</CardTitle>
+                    <CardTitle class="text-3xl">{{ stats.totalProvider }}</CardTitle>
                         </CardHeader>
                     </Card>
                 </div>
@@ -422,28 +489,28 @@ const formatDate = (dateStr) => {
                                 </div>
                             </div>
 
-                            <!-- Provinsi Filter -->
-                            <Select v-model="filterProvinsi" @update:modelValue="applyFilters">
+                            <!-- Kecamatan Filter -->
+                            <Select v-model="filterKecamatan" @update:modelValue="applyFilters">
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Pilih Provinsi" />
+                                    <SelectValue placeholder="Pilih Kecamatan" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Semua Provinsi</SelectItem>
-                                    <SelectItem v-for="prov in filterOptions.provinsi" :key="prov" :value="prov">
-                                        {{ prov }}
+                                    <SelectItem value="all">Semua Kecamatan</SelectItem>
+                                    <SelectItem v-for="kec in filterOptions.kecamatan" :key="kec" :value="kec">
+                                        {{ kec }}
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
 
-                            <!-- Kota Filter -->
-                            <Select v-model="filterKota" @update:modelValue="applyFilters">
+                            <!-- Kelurahan Filter -->
+                            <Select v-model="filterKelurahan" @update:modelValue="applyFilters">
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Pilih Kota" />
+                                    <SelectValue placeholder="Pilih Kelurahan" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Semua Kota</SelectItem>
-                                    <SelectItem v-for="kota in filterOptions.kota" :key="kota" :value="kota">
-                                        {{ kota }}
+                                    <SelectItem value="all">Semua Kelurahan</SelectItem>
+                                    <SelectItem v-for="kel in filterOptions.kelurahan" :key="kel" :value="kel">
+                                        {{ kel }}
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
@@ -478,26 +545,21 @@ const formatDate = (dateStr) => {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead class="w-12">No</TableHead>
-                                        <TableHead>FID</TableHead>
                                         <TableHead>Provinsi</TableHead>
                                         <TableHead>Kota</TableHead>
                                         <TableHead>Kecamatan</TableHead>
                                         <TableHead>Kelurahan</TableHead>
                                         <TableHead>Provider</TableHead>
+                                        <TableHead>Sijali</TableHead>
                                         <TableHead>ODP</TableHead>
                                         <TableHead>Tgl Survey</TableHead>
                                         <TableHead class="text-center">Aksi</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    <TableRow v-for="(provider, index) in providers" :key="provider.id"
+                                    <TableRow v-for="(provider, index) in paginatedProviders" :key="provider.id"
                                         class="hover:bg-gray-50 dark:hover:bg-gray-800">
-                                        <TableCell class="font-medium">{{ index + 1 }}</TableCell>
-                                        <TableCell>
-                                            <span class="font-mono text-sm">{{
-                                                provider.fid || '-'
-                                                }}</span>
-                                        </TableCell>
+                                        <TableCell class="font-medium">{{ (currentPage - 1) * pageSize + index + 1 }}</TableCell>
                                         <TableCell>{{ provider.provinsi || '-' }}</TableCell>
                                         <TableCell>{{ provider.kota || '-' }}</TableCell>
                                         <TableCell>{{ provider.kecamatan || '-' }}</TableCell>
@@ -508,36 +570,114 @@ const formatDate = (dateStr) => {
                                             </Badge>
                                         </TableCell>
                                         <TableCell>
+                                            <template v-if="provider.sijali_link">
+                                                <a
+                                                    :href="provider.sijali_link"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    class="text-blue-600 hover:underline dark:text-blue-300"
+                                                >
+                                                    {{ provider.sijali || 'Detail Sijali' }}
+                                                </a>
+                                            </template>
+                                            <span v-else class="font-mono text-sm">
+                                                {{ provider.sijali || '-' }}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell>
                                             <span class="font-mono text-sm">{{
                                                 provider.odp || '-'
                                                 }}</span>
                                         </TableCell>
                                         <TableCell>{{ formatDate(provider.tgl_survey) }}</TableCell>
                                         <TableCell>
-                                            <div class="flex items-center justify-center gap-2">
-                                                <Button variant="ghost" size="icon" @click="openDetailDialog(provider)"
-                                                    title="Lihat Detail">
-                                                    <Eye class="w-4 h-4" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" @click="openEditDialog(provider)"
-                                                    title="Edit">
-                                                    <Pencil class="w-4 h-4" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon"
-                                                    class="text-red-500 hover:text-red-700"
-                                                    @click="openDeleteDialog(provider)" title="Hapus">
-                                                    <Trash2 class="w-4 h-4" />
-                                                </Button>
-                                            </div>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger as-child>
+                                                    <Button variant="ghost" size="icon" aria-label="Aksi">
+                                                        <MoreVertical class="w-4 h-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" class="w-40">
+                                                    <DropdownMenuItem @click="openDetailDialog(provider)">
+                                                        <Eye class="mr-2 h-4 w-4" />
+                                                        Lihat Detail
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem @click="openEditDialog(provider)">
+                                                        <Pencil class="mr-2 h-4 w-4" />
+                                                        Edit
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem
+                                                        class="text-red-600 focus:text-red-700"
+                                                        @click="openDeleteDialog(provider)"
+                                                    >
+                                                        <Trash2 class="mr-2 h-4 w-4" />
+                                                        Hapus
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </TableCell>
                                     </TableRow>
                                     <TableRow v-if="providers.length === 0">
-                                        <TableCell colspan="10" class="text-center py-8 text-gray-500">
+                                        <TableCell colspan="11" class="text-center py-8 text-gray-500">
                                             Tidak ada data provider
                                         </TableCell>
                                     </TableRow>
                                 </TableBody>
                             </Table>
+                        </div>
+                        <div class="flex items-center justify-between border-t px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                            <div class="flex items-center gap-4">
+                                <div>
+                                    Menampilkan
+                                    <strong class="text-gray-900 dark:text-gray-100">
+                                        {{ props.providers.length ? (currentPage - 1) * pageSize + 1 : 0 }}
+                                    </strong>
+                                    -
+                                    <strong class="text-gray-900 dark:text-gray-100">
+                                        {{ Math.min(currentPage * pageSize, props.providers.length) }}
+                                    </strong>
+                                    dari
+                                    <strong class="text-gray-900 dark:text-gray-100">{{ props.providers.length }}</strong>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="hidden sm:inline">Baris per halaman</span>
+                                    <Select
+                                        :modelValue="String(pageSize)"
+                                        @update:modelValue="(val) => { pageSize = Number(val); currentPage = 1; }"
+                                    >
+                                        <SelectTrigger class="w-[70px]">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem v-for="size in pageSizeOptions" :key="size" :value="String(size)">
+                                                {{ size }}
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    :disabled="currentPage <= 1"
+                                    @click="currentPage = Math.max(1, currentPage - 1)"
+                                >
+                                    &laquo;
+                                </Button>
+                                <span class="px-2 text-sm">
+                                    {{ currentPage }} / {{ totalPages }}
+                                </span>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    :disabled="currentPage >= totalPages"
+                                    @click="currentPage = Math.min(totalPages, currentPage + 1)"
+                                >
+                                    &raquo;
+                                </Button>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
@@ -609,10 +749,21 @@ const formatDate = (dateStr) => {
                             <Input id="add-odp" v-model="form.odp" placeholder="Optical Distribution Point" />
                         </div>
 
-                        <!-- SJALU 21 -->
+                        <!-- Sijali -->
                         <div class="space-y-2">
-                            <Label for="add-sjalu_21">SJALU 21</Label>
-                            <Input id="add-sjalu_21" v-model="form.sjalu_21" placeholder="SJALU 21" />
+                            <Label for="add-sijali">Sijali</Label>
+                            <Input id="add-sijali" v-model="form.sijali" placeholder="Nama jalan Sijali" />
+                        </div>
+
+                        <!-- Sijali Link -->
+                        <div class="space-y-2">
+                            <Label for="add-sijali_link">Link Detail Sijali</Label>
+                            <Input
+                                id="add-sijali_link"
+                                v-model="form.sijali_link"
+                                type="url"
+                                placeholder="https://sijali.surakarta.go.id/..."
+                            />
                         </div>
 
                         <!-- X (Longitude) -->
@@ -630,9 +781,14 @@ const formatDate = (dateStr) => {
                         <!-- Tanggal Survey -->
                         <div class="space-y-2">
                             <Label for="add-tgl_survey">Tanggal Survey</Label>
-                            <Input id="add-tgl_survey" v-model="form.tgl_survey" type="date" />
+                            <Input
+                                id="add-tgl_survey"
+                                v-model="form.tgl_survey"
+                                type="date"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:[color-scheme:dark]"
+                            />
                         </div>
-
+                        <!-- Empty space for grid alignment -->
                         <!-- User -->
                         <div class="space-y-2">
                             <Label for="add-id_user">User</Label>
@@ -731,10 +887,21 @@ const formatDate = (dateStr) => {
                             <Input id="edit-odp" v-model="form.odp" placeholder="Optical Distribution Point" />
                         </div>
 
-                        <!-- SJALU 21 -->
+                        <!-- Sijali -->
                         <div class="space-y-2">
-                            <Label for="edit-sjalu_21">SJALU 21</Label>
-                            <Input id="edit-sjalu_21" v-model="form.sjalu_21" placeholder="SJALU 21" />
+                            <Label for="edit-sijali">Sijali</Label>
+                            <Input id="edit-sijali" v-model="form.sijali" placeholder="Sijali" />
+                        </div>
+
+                        <!-- Sijali Link -->
+                        <div class="space-y-2">
+                            <Label for="edit-sijali_link">Link Detail Sijali</Label>
+                            <Input
+                                id="edit-sijali_link"
+                                v-model="form.sijali_link"
+                                type="url"
+                                placeholder="https://sijali.surakarta.go.id/..."
+                            />
                         </div>
 
                         <!-- X (Longitude) -->
@@ -877,8 +1044,19 @@ const formatDate = (dateStr) => {
                             <p class="font-medium">{{ detailProvider.odp || '-' }}</p>
                         </div>
                         <div>
-                            <p class="text-gray-500">SJALU 21</p>
-                            <p class="font-medium">{{ detailProvider.sjalu_21 || '-' }}</p>
+                            <p class="text-gray-500">Sijali</p>
+                            <p class="font-medium">{{ detailProvider.sijali || '-' }}</p>
+                        </div>
+                        <div v-if="detailProvider.sijali_link">
+                            <p class="text-gray-500">Link Sijali</p>
+                            <a
+                                :href="detailProvider.sijali_link"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="font-medium text-blue-600 hover:underline dark:text-blue-300"
+                            >
+                                Buka detail jalan
+                            </a>
                         </div>
                         <div>
                             <p class="text-gray-500">Koordinat X (Longitude)</p>

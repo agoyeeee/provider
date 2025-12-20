@@ -18,7 +18,7 @@ return new class extends Migration {
             $table->string('utilitas')->nullable()->comment('Jenis Utilitas');
             $table->string('n_provider')->nullable()->comment('Nama Provider');
             $table->string('odp')->nullable()->comment('Optical Distribution Point');
-            $table->string('sjalu_21')->nullable()->comment('SJALU 21');
+            $table->string('sijali')->nullable()->comment('Sijali');
             $table->decimal('x', 15, 10)->nullable()->comment('Longitude');
             $table->decimal('y', 15, 10)->nullable()->comment('Latitude');
             $table->string('foto')->nullable()->comment('Path foto');

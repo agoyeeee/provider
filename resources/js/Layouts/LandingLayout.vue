@@ -1,7 +1,6 @@
 <script setup>
-import ApplicationLogo from "@/Components/ApplicationLogo.vue";
 import { Link } from "@inertiajs/vue3";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/Components/ui/button";
 import { ref, onMounted } from "vue";
 
 defineProps({
@@ -12,6 +11,10 @@ defineProps({
   canRegister: {
     type: Boolean,
     default: false, // Disabled registration
+  },
+  showFooter: {
+    type: Boolean,
+    default: true,
   },
 });
 
@@ -35,9 +38,7 @@ onMounted(() => {
 
 // Toggle theme function with smooth transition
 const toggleTheme = () => {
-  // Add transition class to html element
   document.documentElement.classList.add('theme-transition');
-
   isDark.value = !isDark.value;
 
   if (isDark.value) {
@@ -48,34 +49,21 @@ const toggleTheme = () => {
     localStorage.setItem('theme', 'light');
   }
 
-  // Remove transition class after animation completes
   setTimeout(() => {
     document.documentElement.classList.remove('theme-transition');
   }, 300);
 };
 
-// Function to scroll to news section
-const scrollToBerita = () => {
-  const newsSection = document.querySelector('.news-section');
-  if (newsSection) {
-    newsSection.scrollIntoView({
+const scrollToSection = (sectionId) => {
+  const section = document.getElementById(sectionId);
+
+  if (section) {
+    section.scrollIntoView({
       behavior: 'smooth',
-      block: 'start'
+      block: 'start',
     });
   } else {
-    // If not on homepage, navigate to homepage first
-    window.location.href = '/#berita';
-  }
-};
-
-// Function to scroll to footer menu
-const scrollToNews = () => {
-  const newsSection = document.querySelector('.news-section');
-  if (newsSection) {
-    newsSection.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start'
-    });
+    window.location.href = `/#${sectionId}`;
   }
 };
 </script>
@@ -83,24 +71,52 @@ const scrollToNews = () => {
 <template>
   <div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 overflow-x-hidden">
     <!-- Navigation Header -->
-    <header class="relative z-10 w-full">
-      <nav class="flex items-center justify-between px-6 py-4 lg:px-8 max-w-full">
+    <header class="fixed top-0 left-0 right-0 z-50 w-full bg-white/85 backdrop-blur-md dark:bg-gray-900/85 supports-[backdrop-filter]:backdrop-blur">
+      <nav class="flex items-center justify-between px-6 py-4 lg:px-8 max-w-full shadow-sm">
         <!-- Logo -->
-        <Link href="/" class="flex items-center gap-3 flex-shrink-0">
-          <div class="h-12 w-12 bg-green-600 rounded-lg flex items-center justify-center">
-            <span class="text-white font-bold text-lg">U</span>
+        <button type="button" @click="scrollToSection('hero')" class="flex items-center gap-3 flex-shrink-0 focus:outline-none">
+          <div class="h-12 w-12 bg-green-600 rounded-lg flex items-center justify-center shadow-lg shadow-green-500/30">
+            <span class="text-white font-bold text-lg">P</span>
           </div>
-          <span class="text-xl font-bold text-gray-900 dark:text-white">UMKM Karanganyar</span>
-        </Link>
+          <span class="text-xl font-bold text-gray-900 dark:text-white">Provider Insight</span>
+        </button>
 
         <!-- Navigation Menu -->
         <div class="hidden md:flex items-center space-x-8 flex-shrink-0">
-          <Link href="/" class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors whitespace-nowrap">
+          <button
+            type="button"
+            @click="scrollToSection('hero')"
+            class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors whitespace-nowrap"
+          >
             Beranda
+          </button>
+          <button
+            type="button"
+            @click="scrollToSection('data')"
+            class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors whitespace-nowrap"
+          >
+            Data Provider
+          </button>
+          <Link
+            :href="route('landing.map')"
+            class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors whitespace-nowrap"
+          >
+            Peta
           </Link>
-          <Link :href="route('umkm.index')" class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors whitespace-nowrap">
-            UMKM
-          </Link>
+          <button
+            type="button"
+            @click="scrollToSection('coverage')"
+            class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors whitespace-nowrap"
+          >
+            Cakupan
+          </button>
+          <button
+            type="button"
+            @click="scrollToSection('timeline')"
+            class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors whitespace-nowrap"
+          >
+            Pembaruan
+          </button>
         </div>
 
         <!-- Right Side: Theme Toggle + Auth Links -->
@@ -153,7 +169,7 @@ const scrollToNews = () => {
               as-child
               class="whitespace-nowrap"
             >
-              <Link :href="$page.props.auth.user.role === 'pemilik_umkm' ? route('pemilik-umkm.dashboard') : route('admin.dashboard')">
+              <Link :href="$page.props.auth.user.role === 'admin' ? route('admin.dashboard') : route('profile.edit')">
                 Dashboard
               </Link>
             </Button>
@@ -175,22 +191,21 @@ const scrollToNews = () => {
     </header>
 
     <!-- Main Content -->
-    <main class="relative w-full overflow-x-hidden">
+    <main class="relative w-full overflow-x-hidden pt-20 lg:pt-24">
       <slot />
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-gray-900 dark:bg-black text-white py-12 w-full overflow-x-hidden">
+    <footer v-if="showFooter" class="bg-gray-900 dark:bg-black text-white py-12 w-full overflow-x-hidden">
       <div class="container mx-auto px-6 max-w-full">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div class="md:col-span-2">
             <div class="mb-4">
               <div class="h-12 w-12 bg-green-600 rounded-lg flex items-center justify-center">
-                <span class="text-white font-bold text-lg">U</span>
+                <span class="text-white font-bold text-lg">P</span>
               </div>
             </div>
             <p class="text-gray-400 mb-4">
-              Platform digital untuk mengembangkan UMKM Karanganyar.
+              Portal publikasi data provider utilitas untuk pemetaan konektivitas yang lebih transparan.
             </p>
             <div class="flex space-x-4">
               <a href="#" class="text-gray-400 hover:text-white transition-colors">
@@ -214,13 +229,29 @@ const scrollToNews = () => {
           <div>
             <h4 class="font-semibold mb-4">Menu</h4>
             <ul class="space-y-2 text-gray-400">
-              <li><Link href="/" class="hover:text-white transition-colors">Beranda</Link></li>
               <li>
-                <button
-                  @click="scrollToNews"
-                  class="hover:text-white transition-colors text-left"
-                >
-                  Berita
+                <button @click="scrollToSection('hero')" class="hover:text-white transition-colors text-left">
+                  Beranda
+                </button>
+              </li>
+              <li>
+                <button @click="scrollToSection('data')" class="hover:text-white transition-colors text-left">
+                  Data Provider
+                </button>
+              </li>
+              <li>
+                <Link :href="route('landing.map')" class="hover:text-white transition-colors text-left">
+                  Peta
+                </Link>
+              </li>
+              <li>
+                <button @click="scrollToSection('coverage')" class="hover:text-white transition-colors text-left">
+                  Cakupan
+                </button>
+              </li>
+              <li>
+                <button @click="scrollToSection('timeline')" class="hover:text-white transition-colors text-left">
+                  Pembaruan
                 </button>
               </li>
             </ul>
@@ -229,10 +260,10 @@ const scrollToNews = () => {
           <div>
             <h4 class="font-semibold mb-4">Kontak</h4>
             <ul class="space-y-2 text-gray-400">
-              <li>Jl. Kolonel Sutarto No.150K</li>
-              <li>Jebres, Kec. Jebres</li>
-              <li>Kota Surakarta, Jawa Tengah</li>
-              <li>(0271) 662622</li>
+              <li>Jl. Telekomunikasi No.10</li>
+              <li>Komplek Data Center</li>
+              <li>DKI Jakarta, Indonesia</li>
+              <li>(021) 555-1234</li>
             </ul>
           </div>
         </div>

@@ -1,30 +1,15 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\UserController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\LandingController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProviderController;
-use Illuminate\Foundation\Application;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
-use Illuminate\Support\Facades\Auth;
 
-// Landing page - redirect based on authentication
-Route::get('/', function () {
-    if (Auth::check()) {
-        $user = Auth::user();
-
-        // Redirect based on role
-        if (in_array($user->role, ['admin', 'super_admin'])) {
-            return redirect()->route('admin.dashboard');
-        }
-
-        // For other roles, redirect to profile
-        return redirect()->route('profile.edit');
-    }
-
-    return redirect()->route('login');
-})->name('landing');
+// Landing page
+Route::get('/', [LandingController::class, 'index'])->name('landing');
+Route::get('/peta', [LandingController::class, 'map'])->name('landing.map');
 
 // Authenticated routes
 Route::middleware('auth')->group(function () {
@@ -48,6 +33,7 @@ Route::middleware('auth')->group(function () {
         // Provider (Data Provider/Utilitas)
         Route::resource('provider', ProviderController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::get('provider/export', [ProviderController::class, 'export'])->name('provider.export');
+        Route::post('provider/import', [ProviderController::class, 'import'])->name('provider.import');
     });
 });
 

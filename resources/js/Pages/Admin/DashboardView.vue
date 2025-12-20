@@ -30,23 +30,30 @@ const props = defineProps({
             total_users: 0,
             total_provider: 0,
             total_provider_unique: 0,
-            total_provinsi: 0,
-            total_kota: 0,
+            total_kecamatan: 0,
+            total_kelurahan: 0,
         }),
     },
     recent_providers: {
         type: Array,
         default: () => [],
     },
-    provider_by_provinsi: {
+    provider_by_kecamatan: {
         type: Array,
         default: () => [],
     },
-    provider_by_name: {
+    provider_by_kelurahan: {
         type: Array,
         default: () => [],
     },
 })
+
+const distKecamatan = computed(() =>
+    props.provider_by_kecamatan?.length ? props.provider_by_kecamatan : (props.provider_by_provinsi || []),
+)
+const distKelurahan = computed(() =>
+    props.provider_by_kelurahan?.length ? props.provider_by_kelurahan : (props.provider_by_name || []),
+)
 
 // Format date
 const formatDate = (dateStr) => {
@@ -75,20 +82,20 @@ const statsCards = computed(() => [
         color: 'text-green-600',
         bgColor: 'bg-green-100 dark:bg-green-900/30',
     },
-    {
-        title: 'Jumlah Provinsi',
-        value: props.stats.total_provinsi,
-        icon: MapPin,
-        color: 'text-purple-600',
-        bgColor: 'bg-purple-100 dark:bg-purple-900/30',
-    },
-    {
-        title: 'Jumlah Kota',
-        value: props.stats.total_kota,
-        icon: TrendingUp,
-        color: 'text-orange-600',
-        bgColor: 'bg-orange-100 dark:bg-orange-900/30',
-    },
+    // {
+    //     title: 'Jumlah Provinsi',
+    //     value: props.stats.total_provinsi,
+    //     icon: MapPin,
+    //     color: 'text-purple-600',
+    //     bgColor: 'bg-purple-100 dark:bg-purple-900/30',
+    // },
+    // {
+    //     title: 'Jumlah Kota',
+    //     value: props.stats.total_kota,
+    //     icon: TrendingUp,
+    //     color: 'text-orange-600',
+    //     bgColor: 'bg-orange-100 dark:bg-orange-900/30',
+    // },
     {
         title: 'Total Users',
         value: props.stats.total_users,
@@ -119,7 +126,7 @@ const statsCards = computed(() => [
         <div class="p-6">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
                 <!-- Stats Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <Card v-for="stat in statsCards" :key="stat.title" class="overflow-hidden">
                         <CardContent class="p-6">
                             <div class="flex items-center justify-between">
@@ -141,20 +148,20 @@ const statsCards = computed(() => [
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Provider by Province Chart -->
+                    <!-- Provider by Kecamatan Chart -->
                     <Card>
                         <CardHeader>
                             <CardTitle class="flex items-center gap-2">
                                 <MapPin class="w-5 h-5 text-purple-600" />
-                                Distribusi per Provinsi
+                                Distribusi per Kecamatan
                             </CardTitle>
                             <CardDescription>
-                                Jumlah data provider berdasarkan provinsi
+                                Jumlah data provider berdasarkan kecamatan
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div v-if="provider_by_provinsi.length > 0" class="space-y-3">
-                                <div v-for="item in provider_by_provinsi" :key="item.name"
+                            <div v-if="distKecamatan.length > 0" class="space-y-3">
+                                <div v-for="item in distKecamatan" :key="item.name"
                                     class="flex items-center justify-between">
                                     <span class="text-sm font-medium">{{ item.name }}</span>
                                     <div class="flex items-center gap-2">
@@ -174,20 +181,20 @@ const statsCards = computed(() => [
                         </CardContent>
                     </Card>
 
-                    <!-- Provider by Name Chart -->
+                    <!-- Provider by Kelurahan Chart -->
                     <Card>
                         <CardHeader>
                             <CardTitle class="flex items-center gap-2">
                                 <Building class="w-5 h-5 text-green-600" />
-                                Distribusi per Provider
+                                Distribusi per Kelurahan
                             </CardTitle>
                             <CardDescription>
-                                Jumlah data berdasarkan nama provider
+                                Jumlah data berdasarkan kelurahan
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div v-if="provider_by_name.length > 0" class="space-y-3">
-                                <div v-for="item in provider_by_name" :key="item.name"
+                            <div v-if="distKelurahan.length > 0" class="space-y-3">
+                                <div v-for="item in distKelurahan" :key="item.name"
                                     class="flex items-center justify-between">
                                     <span class="text-sm font-medium">{{ item.name }}</span>
                                     <div class="flex items-center gap-2">
@@ -231,7 +238,6 @@ const statsCards = computed(() => [
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>FID</TableHead>
                                     <TableHead>Provider</TableHead>
                                     <TableHead>Kota</TableHead>
                                     <TableHead>Kecamatan</TableHead>
@@ -242,9 +248,6 @@ const statsCards = computed(() => [
                             <TableBody>
                                 <TableRow v-for="provider in recent_providers" :key="provider.id"
                                     class="hover:bg-gray-50 dark:hover:bg-gray-800">
-                                    <TableCell class="font-mono text-sm">
-                                        {{ provider.fid || '-' }}
-                                    </TableCell>
                                     <TableCell>
                                         <Badge variant="secondary">
                                             {{ provider.n_provider || '-' }}
