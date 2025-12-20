@@ -23,6 +23,13 @@ class LandingController extends Controller
             'uniqueProviders' => Provider::whereNotNull('n_provider')
                 ->distinct('n_provider')
                 ->count('n_provider'),
+            'coverageDistricts' => Provider::whereNotNull('kecamatan')
+                ->distinct('kecamatan')
+                ->count('kecamatan'),
+            'coverageVillages' => Provider::whereNotNull('kelurahan')
+                ->distinct('kelurahan')
+                ->count('kelurahan'),
+            // legacy values kept for backward compatibility
             'coverageCities' => Provider::whereNotNull('kota')
                 ->distinct('kota')
                 ->count('kota'),
@@ -58,14 +65,14 @@ class LandingController extends Controller
             });
 
         $coverage = Provider::query()
-            ->select('provinsi', DB::raw('COUNT(*) as total'))
-            ->whereNotNull('provinsi')
-            ->groupBy('provinsi')
+            ->select('kecamatan', DB::raw('COUNT(*) as total'))
+            ->whereNotNull('kecamatan')
+            ->groupBy('kecamatan')
             ->orderByDesc('total')
             ->limit(5)
             ->get()
             ->map(fn ($row) => [
-                'provinsi' => $row->provinsi,
+                'kecamatan' => $row->kecamatan,
                 'total' => $row->total,
             ]);
 

@@ -47,15 +47,15 @@ const props = defineProps({
   },
   appName: {
     type: String,
-    default: 'Portal Provider',
+    default: 'SIPROSKA',
   },
 })
 
 const heroStats = computed(() => [
   { label: 'Data tercatat', value: props.stats?.totalRecords ?? 0, icon: Radio },
   { label: 'Provider unik', value: props.stats?.uniqueProviders ?? 0, icon: ShieldCheck },
-  { label: 'Kota terjangkau', value: props.stats?.coverageCities ?? 0, icon: MapPin },
-  { label: 'Provinsi', value: props.stats?.coverageProvinces ?? 0, icon: Navigation },
+  { label: 'Kecamatan terjangkau', value: props.stats?.coverageDistricts ?? 0, icon: MapPin },
+  { label: 'Kelurahan', value: props.stats?.coverageVillages ?? 0, icon: Navigation },
 ])
 
 // Map pagination
@@ -97,14 +97,14 @@ const formatDate = (value) =>
         <div class="space-y-6 lg:w-1/2">
           <div class="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-semibold text-emerald-700 shadow-sm ring-1 ring-emerald-100 backdrop-blur dark:bg-gray-800/60 dark:text-emerald-200 dark:ring-emerald-800">
             <Sparkles class="h-4 w-4" />
-            Pusat Data Provider Utilitas
+            SIPROSKA · Sistem Informasi Provider Surakarta
           </div>
           <div class="space-y-4">
             <h1 class="text-4xl font-bold leading-tight text-gray-900 dark:text-white sm:text-5xl">
-              {{ appName }} memetakan konektivitas, kota demi kota.
+              SIPROSKA <br>Sistem Informasi Provider Surakarta
             </h1>
             <p class="text-lg text-gray-600 dark:text-gray-300">
-              Lihat sebaran provider, status survey, dan jejak utilitas di seluruh Indonesia dalam satu layar yang ringan dan informatif.
+              Dinas Perumahan, Kawasan Permukiman, dan Pertanahan Surakarta.
             </p>
           </div>
           <div class="flex flex-wrap items-center gap-3">
@@ -126,9 +126,9 @@ const formatDate = (value) =>
                 <SatelliteDish class="h-6 w-6" />
               </div>
               <div>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Ringkasan cepat</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Ringkasan Surakarta</p>
                 <p class="text-lg font-semibold text-gray-900 dark:text-white">
-                  {{ formatNumber(stats?.totalRecords) }} titik utilitas tercatat, {{ formatNumber(stats?.coverageProvinces) }} provinsi terjangkau.
+                  {{ formatNumber(stats?.totalRecords) }} titik utilitas tercatat, {{ formatNumber(stats?.coverageDistricts) }} kecamatan dan {{ formatNumber(stats?.coverageVillages) }} kelurahan terpantau.
                 </p>
               </div>
             </CardContent>
@@ -194,7 +194,7 @@ const formatDate = (value) =>
               Statistik cepat
             </p>
             <h2 class="text-3xl font-bold text-gray-900 dark:text-white">
-              Pulse data provider
+              Pulse data provider Surakarta
             </h2>
             <p class="mt-2 max-w-2xl text-gray-600 dark:text-gray-400">
               Angka agregat untuk melihat kesehatan data utilitas sebelum masuk ke dashboard analitik.
@@ -258,7 +258,7 @@ const formatDate = (value) =>
                   <SatelliteDish class="h-6 w-6" />
                 </div>
                 <div>
-                  <p class="text-sm text-gray-500 dark:text-gray-400">FID {{ provider.fid || '-' }}</p>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">Provider</p>
                   <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ provider.name || 'Provider' }}</p>
                   <p class="text-sm text-emerald-700 dark:text-emerald-300">
                     {{ provider.utilitas || 'Telekomunikasi' }}
@@ -418,27 +418,27 @@ const formatDate = (value) =>
         <div class="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p class="text-sm font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-300">
-              Cakupan wilayah
+              Cakupan wilayah Surakarta
             </p>
-            <h2 class="text-3xl font-bold text-gray-900 dark:text-white">Provinsi dengan kontribusi data tertinggi</h2>
+            <h2 class="text-3xl font-bold text-gray-900 dark:text-white">Kecamatan dengan kontribusi data tertinggi</h2>
             <p class="mt-2 max-w-2xl text-gray-600 dark:text-gray-400">
               Gambaran cepat daerah yang paling aktif menyuplai data utilitas.
             </p>
           </div>
           <Badge variant="secondary" class="w-fit">
-            {{ formatNumber(stats?.coverageCities) }} kota · {{ formatNumber(stats?.coverageProvinces) }} provinsi
+            {{ formatNumber(stats?.coverageDistricts) }} kecamatan · {{ formatNumber(stats?.coverageVillages) }} kelurahan
           </Badge>
         </div>
 
         <div v-if="coverage.length" class="grid gap-4 md:grid-cols-2">
           <div
             v-for="area in coverage"
-            :key="area.provinsi"
+            :key="area.kecamatan"
             class="flex items-center justify-between rounded-2xl border border-emerald-100/60 bg-gradient-to-r from-white via-emerald-50/60 to-white px-5 py-4 shadow-sm backdrop-blur dark:border-gray-800 dark:from-gray-900 dark:via-emerald-900/20 dark:to-gray-900"
           >
             <div>
-              <p class="text-sm text-gray-500 dark:text-gray-400">Provinsi</p>
-              <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ area.provinsi }}</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400">Kecamatan</p>
+              <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ area.kecamatan }}</p>
             </div>
             <div class="flex items-center gap-3">
               <div class="text-right">
@@ -446,7 +446,7 @@ const formatDate = (value) =>
                 <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-300">{{ formatNumber(area.total) }}</p>
               </div>
               <div class="h-12 w-12 rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200 flex items-center justify-center font-semibold">
-                {{ area.provinsi?.charAt(0) || 'P' }}
+                {{ area.kecamatan?.charAt(0) || 'K' }}
               </div>
             </div>
           </div>
