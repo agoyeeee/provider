@@ -1,14 +1,14 @@
 <script setup>
 import { computed } from "vue";
-import { Checkbox } from '@/components/ui/checkbox';
+import { Checkbox } from '@/Components/ui/checkbox';
 import {
   FormControl,
   FormDescription,
   FormField,
   FormItem,
   FormMessage,
-} from '@/components/ui/form';
-import { Switch } from '@/components/ui/switch';
+} from '@/Components/ui/form';
+import { Switch } from '@/Components/ui/switch';
 import AutoFormLabel from "./AutoFormLabel.vue";
 import { beautifyObjectName, maybeBooleanishToBoolean } from "./utils";
 

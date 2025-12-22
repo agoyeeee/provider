@@ -6,8 +6,8 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from '@/components/ui/accordion';
-import { FormItem } from '@/components/ui/form';
+} from '@/Components/ui/accordion';
+import { FormItem } from '@/Components/ui/form';
 import AutoFormField from "./AutoFormField.vue";
 import AutoFormLabel from "./AutoFormLabel.vue";
 import {

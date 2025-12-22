@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import {
   ChartSingleTooltip,
   defaultColors,
-} from '@/components/ui/chart';
+} from '@/Components/ui/chart';
 
 const props = defineProps({
   data: {

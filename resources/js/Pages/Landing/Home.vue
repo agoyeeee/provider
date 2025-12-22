@@ -2,9 +2,9 @@
 import { computed, ref, watch } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 import LandingLayout from '@/Layouts/LandingLayout.vue'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Button } from '@/Components/ui/button'
+import { Card, CardContent } from '@/Components/ui/card'
+import { Badge } from '@/Components/ui/badge'
 import {
   MapPin,
   Navigation,

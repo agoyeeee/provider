@@ -10,7 +10,7 @@ import {
   ChartCrosshair,
   ChartLegend,
   defaultColors,
-} from '@/components/ui/chart';
+} from '@/Components/ui/chart';
 
 const props = defineProps({
   data: { type: Array, required: true },

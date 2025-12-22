@@ -8,10 +8,10 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from '@/components/ui/accordion';
-import { Button } from '@/components/ui/button';
-import { FormItem, FormMessage } from '@/components/ui/form';
-import { Separator } from '@/components/ui/separator';
+} from '@/Components/ui/accordion';
+import { Button } from '@/Components/ui/button';
+import { FormItem, FormMessage } from '@/Components/ui/form';
+import { Separator } from '@/Components/ui/separator';
 import AutoFormField from "./AutoFormField.vue";
 import AutoFormLabel from "./AutoFormLabel.vue";
 import { beautifyObjectName, getBaseType } from "./utils";

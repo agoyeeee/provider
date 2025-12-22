@@ -16,7 +16,7 @@ import {
   useVueTable,
 } from "@tanstack/vue-table";
 import { ref, computed, h } from "vue";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Checkbox } from "@/Components/ui/checkbox";
 import { valueUpdater } from "@/lib/utils";
 import {
   Table,
@@ -25,7 +25,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/Components/ui/table";
 import DataTablePagination from "./DataTablePagination.vue";
 import DataTableToolbar from "./DataTableToolbar.vue";
 import DataTableSkeleton from "./DataTableSkeleton.vue";

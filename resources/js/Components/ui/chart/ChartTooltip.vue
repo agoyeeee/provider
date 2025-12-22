@@ -4,7 +4,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
+} from '@/Components/ui/card';
 
 defineProps({
   title: { type: String, required: false },

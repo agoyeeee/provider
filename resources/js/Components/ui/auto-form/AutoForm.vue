@@ -1,7 +1,7 @@
 <script setup>
 import { toTypedSchema } from "@vee-validate/zod";
 import { computed, toRefs } from "vue";
-import { Form } from '@/components/ui/form';
+import { Form } from '@/Components/ui/form';
 import AutoFormField from "./AutoFormField.vue";
 import { provideDependencies } from "./dependencies";
 import {

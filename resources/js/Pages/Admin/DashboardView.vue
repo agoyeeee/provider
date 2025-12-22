@@ -2,8 +2,8 @@
 import { computed } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 import DashboardLayout from '@/Layouts/DashboardLayout.vue'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/Components/ui/card'
+import { Button } from '@/Components/ui/button'
 import {
     Table,
     TableBody,
@@ -11,8 +11,8 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
+} from '@/Components/ui/table'
+import { Badge } from '@/Components/ui/badge'
 import {
     Users,
     Wifi,

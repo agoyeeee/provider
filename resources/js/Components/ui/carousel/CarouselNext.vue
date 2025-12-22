@@ -1,7 +1,7 @@
 <script setup>
 import { ArrowRight } from "lucide-vue-next";
 import { cn } from "@/lib/utils";
-import { Button } from '@/components/ui/button';
+import { Button } from '@/Components/ui/button';
 import { useCarousel } from "./useCarousel";
 
 const props = defineProps({

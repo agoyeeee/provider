@@ -8,14 +8,14 @@ import {
   EyeClosedIcon,
 } from "lucide-vue-next";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/Components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/Components/ui/dropdown-menu";
 
 interface DataTableColumnHeaderProps {
   column: Column<any, any>;

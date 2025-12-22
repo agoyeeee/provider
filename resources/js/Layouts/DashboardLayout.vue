@@ -1,6 +1,6 @@
 <script setup>
-import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
-import AppSidebar from "@/components/AppSidebar.vue";
+import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/Components/ui/sidebar";
+import AppSidebar from "@/Components/AppSidebar.vue";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -8,8 +8,8 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
+} from "@/Components/ui/breadcrumb";
+import { Separator } from "@/Components/ui/separator";
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 

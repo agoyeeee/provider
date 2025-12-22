@@ -23,7 +23,7 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
   SidebarRail,
-} from "@/components/ui/sidebar";
+} from "@/Components/ui/sidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,10 +31,10 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import ThemeToggle from "@/components/ThemeToggle.vue";
+} from "@/Components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/Components/ui/avatar";
+import { Badge } from "@/Components/ui/badge";
+import ThemeToggle from "@/Components/ThemeToggle.vue";
 import { Link, usePage } from "@inertiajs/vue3";
 import { computed } from "vue";
 
