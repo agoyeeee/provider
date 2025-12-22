@@ -23,7 +23,7 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
   SidebarRail,
-} from "@/Components/ui/sidebar";
+} from "@/components/ui/sidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,10 +31,10 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/Components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/Components/ui/avatar";
-import { Badge } from "@/Components/ui/badge";
-import ThemeToggle from "@/Components/ThemeToggle.vue";
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import ThemeToggle from "@/components/ThemeToggle.vue";
 import { Link, usePage } from "@inertiajs/vue3";
 import { computed } from "vue";
 
@@ -142,7 +142,7 @@ const getRoleDisplayName = computed(() => {
     <SidebarContent class="bg-sidebar">
       <!-- Main Navigation -->
       <SidebarGroup>
-        <SidebarGroupLabel class="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/50">
+        <SidebarGroupLabel class="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/50 group-data-[collapsible=icon]:hidden">
           Menu Utama
         </SidebarGroupLabel>
         <SidebarGroupContent>
@@ -155,7 +155,7 @@ const getRoleDisplayName = computed(() => {
                   <component :is="item.icon" class="h-4 w-4 shrink-0" :class="{
                     'text-primary': route().current(item.url) || route().current(item.url + '.*')
                   }" />
-                  <span class="truncate">{{ item.title }}</span>
+                  <span class="truncate group-data-[collapsible=icon]:hidden">{{ item.title }}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -163,11 +163,11 @@ const getRoleDisplayName = computed(() => {
         </SidebarGroupContent>
       </SidebarGroup>
 
-      <SidebarSeparator />
+      <SidebarSeparator class="group-data-[collapsible=icon]:hidden" />
 
       <!-- Settings Navigation -->
       <SidebarGroup v-if="settingsNavItems.length > 0">
-        <SidebarGroupLabel class="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/50">
+        <SidebarGroupLabel class="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/50 group-data-[collapsible=icon]:hidden">
           Pengaturan
         </SidebarGroupLabel>
         <SidebarGroupContent>
@@ -180,7 +180,7 @@ const getRoleDisplayName = computed(() => {
                   <component :is="item.icon" class="h-4 w-4 shrink-0" :class="{
                     'text-primary': route().current(item.url) || route().current(item.url + '.*')
                   }" />
-                  <span class="truncate">{{ item.title }}</span>
+                  <span class="truncate group-data-[collapsible=icon]:hidden">{{ item.title }}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -188,17 +188,17 @@ const getRoleDisplayName = computed(() => {
         </SidebarGroupContent>
       </SidebarGroup>
 
-      <SidebarSeparator />
+      <SidebarSeparator class="group-data-[collapsible=icon]:hidden" />
 
       <!-- Preferences -->
       <SidebarGroup>
-        <SidebarGroupLabel class="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/50">
+        <SidebarGroupLabel class="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/50 group-data-[collapsible=icon]:hidden">
           Preferensi
         </SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton as-child class="w-full h-10">
+              <SidebarMenuButton tooltip="Theme" class="w-full h-10">
                 <ThemeToggle />
               </SidebarMenuButton>
             </SidebarMenuItem>

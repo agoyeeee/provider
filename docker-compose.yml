@@ -1,0 +1,65 @@
+services:
+  # Laravel Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: provider-app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_NAME=${APP_NAME:-Provider}
+      - APP_ENV=${APP_ENV:-production}
+      - APP_KEY=${APP_KEY}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - APP_URL=${APP_URL:-http://localhost:8000}
+      - DB_CONNECTION=mysql
+      - DB_HOST=provider-mysql
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE:-provider}
+      - DB_USERNAME=${DB_USERNAME:-provider}
+      - DB_PASSWORD=${DB_PASSWORD:-secret}
+      - CACHE_STORE=database
+      - SESSION_DRIVER=database
+      - QUEUE_CONNECTION=database
+    depends_on:
+      provider-mysql:
+        condition: service_healthy
+    networks:
+      - provider-network
+    volumes:
+      - app-storage:/var/www/html/storage/app
+
+  # MySQL Database
+  provider-mysql:
+    image: mysql:8.0
+    container_name: provider-mysql
+    restart: unless-stopped
+    environment:
+      - MYSQL_DATABASE=${DB_DATABASE:-provider}
+      - MYSQL_USER=${DB_USERNAME:-provider}
+      - MYSQL_PASSWORD=${DB_PASSWORD:-secret}
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-rootsecret}
+    ports:
+      - "3307:3306"
+    volumes:
+      - provider-mysql-data:/var/lib/mysql
+    networks:
+      - provider-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-rootsecret}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+networks:
+  provider-network:
+    driver: bridge
+
+volumes:
+  provider-mysql-data:
+    driver: local
+  app-storage:
+    driver: local

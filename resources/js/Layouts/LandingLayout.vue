@@ -1,6 +1,6 @@
 <script setup>
 import { Link } from "@inertiajs/vue3";
-import { Button } from "@/Components/ui/button";
+import { Button } from "@/components/ui/button";
 import { ref, onMounted } from "vue";
 
 defineProps({

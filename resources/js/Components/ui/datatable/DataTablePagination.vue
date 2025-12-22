@@ -6,8 +6,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/Components/ui/select";
-import Button from "@/Components/ui/button/Button.vue";
+} from "@/components/ui/select";
+import Button from "@/components/ui/button/Button.vue";
 import {
   ChevronRightIcon,
   ArrowRightIcon,

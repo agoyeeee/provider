@@ -21,6 +21,9 @@ export default defineConfig({
     resolve: {
         alias: {
             '@': fileURLToPath(new URL('./resources/js', import.meta.url)),
+            // Handle both uppercase and lowercase imports for Linux compatibility
+            '@/Components': fileURLToPath(new URL('./resources/js/components', import.meta.url)),
+            '@/components': fileURLToPath(new URL('./resources/js/components', import.meta.url)),
+        },
     },
-  },
 });

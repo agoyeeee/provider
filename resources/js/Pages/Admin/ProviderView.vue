@@ -2,9 +2,9 @@
 import { ref, computed, watch } from 'vue'
 import { Head, router, usePage } from '@inertiajs/vue3'
 import DashboardLayout from '@/Layouts/DashboardLayout.vue'
-import { Button } from '@/Components/ui/button'
-import { Input } from '@/Components/ui/input'
-import { Label } from '@/Components/ui/label'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
     Dialog,
     DialogContent,
@@ -12,7 +12,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-} from '@/Components/ui/dialog'
+} from '@/components/ui/dialog'
 import {
     Table,
     TableBody,
@@ -20,25 +20,25 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from '@/Components/ui/table'
+} from '@/components/ui/table'
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from '@/Components/ui/dropdown-menu'
+} from '@/components/ui/dropdown-menu'
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from '@/Components/ui/select'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/Components/ui/card'
-import { Badge } from '@/Components/ui/badge'
+} from '@/components/ui/select'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { toast } from 'vue-sonner'
-import { Toaster } from '@/Components/ui/sonner'
+import { Toaster } from '@/components/ui/sonner'
 import {
     Plus,
     Pencil,

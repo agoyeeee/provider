@@ -2,8 +2,8 @@
 import type { Table } from "@tanstack/vue-table";
 import { computed, ref, watch } from "vue";
 import { XIcon, CheckIcon, ListFilter, Search } from "lucide-vue-next";
-import Button from "@/Components/ui/button/Button.vue";
-import Input from "@/Components/ui/input/Input.vue";
+import Button from "@/components/ui/button/Button.vue";
+import Input from "@/components/ui/input/Input.vue";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
   DropdownMenuLabel
-} from "@/Components/ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 
 interface DataTableToolbarProps {
   table: Table<any>;
