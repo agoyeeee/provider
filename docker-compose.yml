@@ -48,7 +48,7 @@ services:
     networks:
       - provider-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-rootsecret}"]
+      test: ["CMD", "mysql", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-rootsecret}", "-e", "SELECT 1"]
       interval: 10s
       timeout: 5s
       retries: 5
