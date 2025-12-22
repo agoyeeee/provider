@@ -103,6 +103,8 @@ class LandingController extends Controller
                             ->filter()
                             ->implode(', ')
                     ),
+                    'kecamatan' => $provider->kecamatan,
+                    'kelurahan' => $provider->kelurahan,
                     'odp' => $provider->odp,
                     'utilitas' => $provider->utilitas,
                     'surveyed_at' => $provider->tgl_survey?->format('Y-m-d'),
@@ -135,10 +137,7 @@ class LandingController extends Controller
     public function map()
     {
         $mapProviders = Provider::query()
-            ->whereNotNull('x')
-            ->whereNotNull('y')
             ->orderByDesc('tgl_survey')
-            ->limit(500)
             ->get()
             ->map(function (Provider $provider) {
                 return [
@@ -150,6 +149,8 @@ class LandingController extends Controller
                             ->filter()
                             ->implode(', ')
                     ),
+                    'kecamatan' => $provider->kecamatan,
+                    'kelurahan' => $provider->kelurahan,
                     'utilitas' => $provider->utilitas,
                     'odp' => $provider->odp,
                     'sijali' => $provider->sijali,

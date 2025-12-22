@@ -35,14 +35,19 @@ const activeBaseLayer = ref(null)
 const baseLayers = {}
 const markerById = ref({})
 
+function collectSearchableValue(value) {
+  if (value === null || value === undefined) return ''
+  if (Array.isArray(value)) return value.map(collectSearchableValue).join(' ')
+  if (typeof value === 'object') {
+    return Object.values(value).map(collectSearchableValue).join(' ')
+  }
+  return String(value)
+}
+
 const filteredProviders = computed(() => {
   const keyword = search.value.trim().toLowerCase()
   if (!keyword) return props.mapProviders
-  return props.mapProviders.filter((p) =>
-    [p.name, p.location, p.odp, p.utilitas, p.sijali]
-      .filter(Boolean)
-      .some((field) => String(field).toLowerCase().includes(keyword)),
-  )
+  return props.mapProviders.filter((p) => collectSearchableValue(p).toLowerCase().includes(keyword))
 })
 
 const initialCenter = computed(() => {
@@ -138,6 +143,8 @@ function renderMarkers() {
           ${photoHtml}
           <strong>${p.name || 'Provider'}</strong><br/>
           <small>${p.location || 'Lokasi tidak tersedia'}</small><br/>
+          <small>Kecamatan: ${p.kecamatan || '-'}</small><br/>
+          <small>Kelurahan: ${p.kelurahan || '-'}</small><br/>
           <small>ODP: ${p.odp || '-'}</small><br/>
           <small>Utilitas: ${p.utilitas || '-'}</small><br/>
           <small>Sijali: ${p.sijali || '-'}</small><br/>
@@ -197,11 +204,11 @@ function handleSelectProvider(p) {
         <div class="w-72 max-w-sm rounded-2xl bg-white/95 p-4 shadow-xl backdrop-blur dark:bg-gray-900/90">
           <div class="flex items-center gap-2 mb-3">
             <Search class="h-4 w-4 text-emerald-600" />
-            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Cari Provider / ODP / Sijali</h3>
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Cari Provider / ODP / Sijali / Kecamatan / Kelurahan</h3>
           </div>
           <Input
             v-model="search"
-            placeholder="Cari provider, ODP, Sijali..."
+            placeholder="Cari provider, ODP, Sijali, Kecamatan, Kelurahan..."
             class="w-full mb-3"
           />
           <div class="max-h-64 overflow-y-auto space-y-2">
@@ -215,6 +222,8 @@ function handleSelectProvider(p) {
                 <div>
                   <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ point.name || 'Provider' }}</p>
                   <p class="text-xs text-gray-500 dark:text-gray-400">{{ point.location || 'Lokasi tidak tersedia' }}</p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">Kecamatan: {{ point.kecamatan || '-' }}</p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">Kelurahan: {{ point.kelurahan || '-' }}</p>
                   <p class="text-xs text-amber-600 dark:text-amber-300">Sijali: {{ point.sijali || '-' }}</p>
                 </div>
                 <Badge variant="secondary">{{ point.odp || 'ODP' }}</Badge>
