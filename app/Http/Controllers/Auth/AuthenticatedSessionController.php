@@ -35,13 +35,13 @@ class AuthenticatedSessionController extends Controller
 
         $user = Auth::user();
 
-        // Redirect based on user role
-        if ($user->role === 'pemilik_umkm') {
-            return redirect()->intended(route('pemilik-umkm.dashboard', absolute: false));
+        // Redirect based on user role - all authenticated users go to admin dashboard
+        if (in_array($user->role, ['admin', 'super_admin'])) {
+            return redirect()->intended(route('admin.dashboard', absolute: false));
         }
 
-        // Default redirect for admin or other roles
-        return redirect()->intended(route('admin.dashboard', absolute: false));
+        // Default redirect to home for other roles
+        return redirect()->intended('/');
     }
 
     /**

@@ -32,8 +32,8 @@ class RegisteredUserController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
-            'nik' => 'required|string|size:16|regex:/^[0-9]{16}$/|unique:'.User::class,
+            'email' => 'required|string|lowercase|email|max:255|unique:' . User::class,
+            'nik' => 'required|string|size:16|regex:/^[0-9]{16}$/|unique:' . User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
@@ -42,15 +42,16 @@ class RegisteredUserController extends Controller
             'email' => $request->email,
             'nik' => $request->nik,
             'password' => Hash::make($request->password),
-            'kontak' => '', // Use empty string instead of null
+            'kontak' => '',
             'role' => 'pemilik_umkm', // Default role for new registrations
-            'sso_id' => '', // Use empty string instead of null
+            'sso_id' => '',
         ]);
 
         event(new Registered($user));
 
         Auth::login($user);
 
-        return redirect(route('pemilik-umkm.dashboard', absolute: false));
+        // Redirect to home after registration
+        return redirect('/');
     }
 }
