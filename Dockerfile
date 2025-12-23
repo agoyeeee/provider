@@ -105,7 +105,8 @@ COPY --from=composer-builder /app /var/www/html
 COPY --from=frontend-builder /app/public/build /var/www/html/public/build
 
 # Copy nginx configuration
-COPY docker/nginx.conf /etc/nginx/http.d/default.conf
+COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf
+COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
 
 # Copy supervisor configuration
 COPY docker/supervisord.conf /etc/supervisord.conf
@@ -126,8 +127,8 @@ RUN chown -R www-data:www-data /var/www/html \
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Expose port
-EXPOSE 8000
+# Expose port 80 for Nginx
+EXPOSE 80
 
 # Set entrypoint
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
