@@ -2,13 +2,12 @@
 set -e
 
 echo "Starting application setup..."
+echo "DB_HOST: $DB_HOST"
+echo "DB_DATABASE: $DB_DATABASE"
 
-# Wait for MySQL to be ready
-echo "Waiting for MySQL..."
-while ! mysql --skip-ssl -h"$DB_HOST" -u"$DB_USERNAME" -p"$DB_PASSWORD" -e "SELECT 1" >/dev/null 2>&1; do
-    sleep 1
-done
-echo "MySQL is ready!"
+# Wait for MySQL with simple sleep (depends_on healthcheck should handle this)
+echo "Waiting for MySQL to be ready..."
+sleep 10
 
 # Generate app key if not set
 if [ -z "$APP_KEY" ]; then
