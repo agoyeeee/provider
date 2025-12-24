@@ -5,6 +5,7 @@ import LandingLayout from '@/Layouts/LandingLayout.vue'
 import { Button } from '@/Components/ui/button'
 import { Card, CardContent } from '@/Components/ui/card'
 import { Badge } from '@/Components/ui/badge'
+import { BarChart } from '@/Components/ui/chart-bar'
 import {
   MapPin,
   Navigation,
@@ -12,7 +13,6 @@ import {
   ShieldCheck,
   Sparkles,
   Clock4,
-  Activity,
   SatelliteDish,
 } from 'lucide-vue-next'
 
@@ -47,13 +47,13 @@ const props = defineProps({
   },
   appName: {
     type: String,
-    default: 'SIPROSKA',
+    default: 'SIPJALIN',
   },
 })
 
 const heroStats = computed(() => [
   { label: 'Data tercatat', value: props.stats?.totalRecords ?? 0, icon: Radio },
-  { label: 'Provider unik', value: props.stats?.uniqueProviders ?? 0, icon: ShieldCheck },
+  { label: 'Jumlah provider', value: props.stats?.uniqueProviders ?? 0, icon: ShieldCheck },
   { label: 'Kecamatan terjangkau', value: props.stats?.coverageDistricts ?? 0, icon: MapPin },
   { label: 'Kelurahan', value: props.stats?.coverageVillages ?? 0, icon: Navigation },
 ])
@@ -61,12 +61,206 @@ const heroStats = computed(() => [
 // Map pagination
 const mapPageSize = 6
 const mapPage = ref(1)
+const selectedKecamatan = ref('')
+const selectedKelurahan = ref('')
+
+const normalizeArea = (value) => String(value ?? '').trim().toLowerCase()
+const normalizeProviderKey = (value) =>
+  String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+const normalizeProviderName = (value) => {
+  const raw = String(value ?? '').trim()
+  if (!raw) return ''
+  if (raw.includes('/')) {
+    const parts = raw
+      .split('/')
+      .map((part) => part.trim())
+      .filter(Boolean)
+    const normalizedParts = parts.map(normalizeProviderKey).filter(Boolean)
+    const uniqueParts = new Set(normalizedParts)
+    if (uniqueParts.size === 1) {
+      return normalizedParts[0] || ''
+    }
+  }
+  return normalizeProviderKey(raw)
+}
+const getProviderLabel = (value) => {
+  const raw = String(value ?? '').trim()
+  if (!raw) return ''
+  if (raw.includes('/')) {
+    const parts = raw
+      .split('/')
+      .map((part) => part.trim())
+      .filter(Boolean)
+    return parts[0] || raw
+  }
+  return raw
+}
+const splitProviderNames = (value) =>
+  String(value ?? '')
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean)
+
+const kecamatanOptions = computed(() => {
+  const options = new Map()
+  props.mapProviders.forEach((provider) => {
+    const label = String(provider.kecamatan ?? '').trim()
+    if (!label) return
+    const key = normalizeArea(label)
+    const current = options.get(key)
+    if (current) {
+      current.total += 1
+    } else {
+      options.set(key, { value: label, label, total: 1 })
+    }
+  })
+  return Array.from(options.values()).sort((a, b) =>
+    a.label.localeCompare(b.label, 'id', { sensitivity: 'base' }),
+  )
+})
+
+const kelurahanOptions = computed(() => {
+  const kecamatanKey = normalizeArea(selectedKecamatan.value)
+  if (!kecamatanKey) return []
+  const options = new Map()
+  props.mapProviders
+    .filter((provider) => {
+      return normalizeArea(provider.kecamatan) === kecamatanKey
+    })
+    .forEach((provider) => {
+      const label = String(provider.kelurahan ?? '').trim()
+      if (!label) return
+      const key = normalizeArea(label)
+      const current = options.get(key)
+      if (current) {
+        current.total += 1
+      } else {
+        options.set(key, { value: label, label, total: 1 })
+      }
+    })
+  return Array.from(options.values()).sort((a, b) =>
+    a.label.localeCompare(b.label, 'id', { sensitivity: 'base' }),
+  )
+})
+
+const filteredMapProviders = computed(() => {
+  const kecamatan = normalizeArea(selectedKecamatan.value)
+  const kelurahan = normalizeArea(selectedKelurahan.value)
+
+  return props.mapProviders.filter((provider) => {
+    if (kecamatan) {
+      if (normalizeArea(provider.kecamatan) !== kecamatan) return false
+    }
+    if (kelurahan) {
+      if (normalizeArea(provider.kelurahan) !== kelurahan) return false
+    }
+    return true
+  })
+})
+
+const filteredProviderGroups = computed(() => {
+  const groups = new Map()
+
+  filteredMapProviders.value.forEach((provider) => {
+    splitProviderNames(provider.name).forEach((name) => {
+      const key = normalizeProviderName(name)
+      if (!key) return
+      const existing = groups.get(key)
+    if (existing) {
+      existing.total += 1
+      const sampleHasSijali = Boolean(existing.sample?.sijali)
+      const candidateHasSijali = Boolean(provider.sijali)
+      if (!sampleHasSijali && candidateHasSijali) {
+        existing.sample = provider
+        return
+      }
+      if (
+        !existing.sample?.maps_url &&
+        provider.maps_url &&
+        (!sampleHasSijali || candidateHasSijali)
+      ) {
+        existing.sample = provider
+      }
+      return
+    }
+      groups.set(key, {
+        key,
+        label: getProviderLabel(name),
+        total: 1,
+        sample: provider,
+      })
+    })
+  })
+
+  return Array.from(groups.values()).sort((a, b) =>
+    a.label.localeCompare(b.label, 'id', { sensitivity: 'base' }),
+  )
+})
+
+const streetProviderCounts = computed(() => {
+  const counts = new Map()
+
+  filteredMapProviders.value.forEach((provider) => {
+    const streetLabel = String(provider.sijali ?? '').trim()
+    if (!streetLabel) return
+    const key = normalizeArea(streetLabel)
+    let entry = counts.get(key)
+    if (!entry) {
+      entry = { label: streetLabel, providerKeys: new Set() }
+      counts.set(key, entry)
+    }
+    splitProviderNames(provider.name).forEach((name) => {
+      const providerKey = normalizeProviderName(name)
+      if (!providerKey) return
+      entry.providerKeys.add(providerKey)
+    })
+  })
+
+  const result = new Map()
+  counts.forEach((entry, key) => {
+    result.set(key, { label: entry.label, total: entry.providerKeys.size })
+  })
+  return result
+})
+
+const getStreetProviderCount = (streetName) => {
+  if (!streetName) return 0
+  const key = normalizeArea(streetName)
+  return streetProviderCounts.value.get(key)?.total ?? 0
+}
+
+const collectUniqueProviders = (providers) => {
+  const names = new Map()
+  providers.forEach((provider) => {
+    splitProviderNames(provider.name).forEach((name) => {
+      const key = normalizeProviderName(name)
+      if (!key) return
+      if (!names.has(key)) names.set(key, name)
+    })
+  })
+  return Array.from(names.values()).sort((a, b) => a.localeCompare(b, 'id', { sensitivity: 'base' }))
+}
+
+const filteredProviderNames = computed(() => collectUniqueProviders(filteredMapProviders.value))
+const allProviderNames = computed(() => collectUniqueProviders(props.mapProviders))
+const filteredProviderPreview = computed(() => {
+  const names = filteredProviderNames.value
+  if (!names.length) return '-'
+  const limit = 6
+  const preview = names.slice(0, limit).join(', ')
+  const extra = names.length > limit ? ` +${names.length - limit} lainnya` : ''
+  return `${preview}${extra}`
+})
+
 const mapTotalPages = computed(() =>
-  Math.max(1, Math.ceil((props.mapProviders.length || 0) / mapPageSize)),
+  Math.max(1, Math.ceil((filteredProviderGroups.value.length || 0) / mapPageSize)),
 )
 const mapPaginatedProviders = computed(() => {
   const start = (mapPage.value - 1) * mapPageSize
-  return props.mapProviders.slice(start, start + mapPageSize)
+  return filteredProviderGroups.value.slice(start, start + mapPageSize)
 })
 
 watch(
@@ -75,10 +269,114 @@ watch(
     mapPage.value = 1
   },
 )
+watch(
+  () => filteredMapProviders.value.length,
+  () => {
+    mapPage.value = 1
+  },
+)
+watch(selectedKecamatan, () => {
+  selectedKelurahan.value = ''
+  mapPage.value = 1
+})
+watch(selectedKelurahan, () => {
+  mapPage.value = 1
+})
 
 const formatNumber = (value) => new Intl.NumberFormat('id-ID').format(value ?? 0)
 const formatDate = (value) =>
   value ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(new Date(value)) : 'Belum ada'
+
+const axisLabelStyle = {
+  '--vis-axis-tick-label-font-size': '11px',
+  '--vis-axis-tick-label-weight': '600',
+}
+
+const buildAreaDistribution = (providers, key) => {
+  const counts = new Map()
+  providers.forEach((provider) => {
+    const label = String(provider?.[key] ?? '').trim()
+    if (!label) return
+    const normalized = normalizeArea(label)
+    const existing = counts.get(normalized)
+    if (existing) {
+      existing.total += 1
+    } else {
+      counts.set(normalized, { name: label, total: 1 })
+    }
+  })
+  return Array.from(counts.values()).sort(
+    (a, b) => b.total - a.total || a.name.localeCompare(b.name, 'id', { sensitivity: 'base' }),
+  )
+}
+
+const barCategoryKey = 'Jumlah'
+const kecamatanDistribution = computed(() => buildAreaDistribution(props.mapProviders, 'kecamatan'))
+const kelurahanDistribution = computed(() => buildAreaDistribution(props.mapProviders, 'kelurahan'))
+const kecamatanBarData = computed(() =>
+  kecamatanDistribution.value.map((item) => ({
+    name: item.name,
+    [barCategoryKey]: item.total,
+  })),
+)
+const kelurahanBarData = computed(() =>
+  kelurahanDistribution.value.map((item) => ({
+    name: item.name,
+    [barCategoryKey]: item.total,
+  })),
+)
+const formatBarLabel = (data) => (value) => {
+  const label = data?.[value]?.name ?? ''
+  if (!label) return ''
+  return label.length > 12 ? `${label.slice(0, 12)}...` : label
+}
+
+const permitRequests = [
+  {
+    id: 1,
+    provider: 'Link Net',
+    kecamatan: 'Banjarsari',
+    kelurahan: 'Keprabon',
+    status: 'legal',
+    submitted_at: '2025-01-10',
+  },
+  {
+    id: 2,
+    provider: 'Biznet',
+    kecamatan: 'Banjarsari',
+    kelurahan: 'Keprabon',
+    status: 'legal',
+    submitted_at: '2025-01-12',
+  },
+  {
+    id: 3,
+    provider: 'MyRepublic',
+    kecamatan: 'Laweyan',
+    kelurahan: 'Sondakan',
+    status: 'ilegal',
+    submitted_at: '2025-01-15',
+  },
+  {
+    id: 4,
+    provider: 'PowerTel',
+    kecamatan: 'Jebres',
+    kelurahan: 'Pucangsawit',
+    status: 'legal',
+    submitted_at: '2025-01-18',
+  },
+  {
+    id: 5,
+    provider: 'IP-1',
+    kecamatan: 'Pasar Kliwon',
+    kelurahan: 'Kauman',
+    status: 'ilegal',
+    submitted_at: '2025-01-20',
+  },
+]
+
+const legalPermitRequests = computed(() =>
+  permitRequests.filter((request) => request.status === 'legal'),
+)
 </script>
 
 <template>
@@ -97,12 +395,15 @@ const formatDate = (value) =>
         <div class="space-y-6 lg:w-1/2">
           <div class="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-semibold text-emerald-700 shadow-sm ring-1 ring-emerald-100 backdrop-blur dark:bg-gray-800/60 dark:text-emerald-200 dark:ring-emerald-800">
             <Sparkles class="h-4 w-4" />
-            SIPROSKA · Sistem Informasi Provider Surakarta
+            SIPJALIN · Sistem Informasi Provider Jalan lingkungan
           </div>
           <div class="space-y-4">
             <h1 class="text-4xl font-bold leading-tight text-gray-900 dark:text-white sm:text-5xl">
-              SIPROSKA <br>Sistem Informasi Provider Surakarta
+              SIPJALIN
             </h1>
+            <h2 class="text-3xl font-bold leading-tight text-gray-900 dark:text-white sm:text-5xl">
+              Sistem Informasi Provider Jalan lingkungan
+            </h2>
             <p class="text-lg text-gray-600 dark:text-gray-300">
               Dinas Perumahan, Kawasan Permukiman, dan Pertanahan Surakarta.
             </p>
@@ -114,71 +415,19 @@ const formatDate = (value) =>
             <Button as-child size="lg" variant="outline" class="backdrop-blur">
               <Link :href="route('login')">Masuk dashboard</Link>
             </Button>
-            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-              <div class="h-2 w-2 rounded-full bg-emerald-500"></div>
-              Pembaruan terakhir: {{ formatDate(stats?.latestSurvey) }}
-            </div>
           </div>
 
-          <Card class="border border-emerald-100/80 bg-white/70 shadow-lg shadow-emerald-200/40 backdrop-blur dark:border-emerald-900/50 dark:bg-gray-900/70">
-            <CardContent class="flex items-center gap-6 p-5">
-              <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-lg">
-                <SatelliteDish class="h-6 w-6" />
-              </div>
-              <div>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Ringkasan Surakarta</p>
-                <p class="text-lg font-semibold text-gray-900 dark:text-white">
-                  {{ formatNumber(stats?.totalRecords) }} titik utilitas tercatat, {{ formatNumber(stats?.coverageDistricts) }} kecamatan dan {{ formatNumber(stats?.coverageVillages) }} kelurahan terpantau.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         <div class="lg:w-1/2">
-          <div class="relative overflow-hidden rounded-3xl border border-white/60 bg-white/80 p-6 shadow-2xl backdrop-blur dark:border-gray-800 dark:bg-gray-900/70">
+          <div class="relative overflow-hidden rounded-3xl border border-white/60 bg-white/80 p-4 shadow-2xl backdrop-blur dark:border-gray-800 dark:bg-gray-900/70">
             <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-blue-500/10"></div>
-            <div class="relative grid gap-4">
-              <div class="flex items-center justify-between rounded-2xl bg-emerald-600 px-5 py-4 text-white shadow-lg">
-                <div>
-                  <p class="text-sm text-emerald-100">Total provider terdata</p>
-                  <p class="text-4xl font-bold">{{ formatNumber(stats?.uniqueProviders) }}</p>
-                </div>
-                <div class="rounded-xl bg-white/15 p-3">
-                  <ShieldCheck class="h-6 w-6" />
-                </div>
-              </div>
-
-              <div class="grid grid-cols-2 gap-4">
-                <div
-                  v-for="item in heroStats"
-                  :key="item.label"
-                  class="rounded-2xl border border-emerald-100/60 bg-white/70 p-4 shadow-sm backdrop-blur dark:border-gray-800 dark:bg-gray-800/70"
-                >
-                  <div class="flex items-center justify-between">
-                    <div class="rounded-lg bg-emerald-50 p-2 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-200">
-                      <component :is="item.icon" class="h-4 w-4" />
-                    </div>
-                    <span class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">{{ item.label }}</span>
-                  </div>
-                  <p class="mt-3 text-2xl font-semibold text-gray-900 dark:text-white">
-                    {{ formatNumber(item.value) }}
-                  </p>
-                </div>
-              </div>
-
-              <div class="rounded-2xl border border-emerald-100/60 bg-gradient-to-r from-emerald-500 via-teal-500 to-blue-500 p-5 text-white shadow-lg backdrop-blur dark:border-emerald-900/50">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <p class="text-sm text-emerald-50">Kecepatan onboarding</p>
-                    <p class="text-3xl font-bold">Realtime survey tracker</p>
-                  </div>
-                  <Activity class="h-8 w-8 text-emerald-50" />
-                </div>
-                <p class="mt-3 text-emerald-100">
-                  Data survey terbaru tercatat pada {{ formatDate(stats?.latestSurvey) }} dengan sebaran kota yang terus bertambah.
-                </p>
-              </div>
+            <div class="relative">
+              <img
+                src="/images/hero.png"
+                alt="Tampilan hero SIPJALIN"
+                class="h-full w-full rounded-2xl object-cover"
+              />
             </div>
           </div>
         </div>
@@ -223,6 +472,78 @@ const formatDate = (value) =>
             </CardContent>
           </Card>
         </div>
+
+        <div class="mt-8 rounded-2xl border border-emerald-100/60 bg-white/80 p-5 shadow-sm backdrop-blur dark:border-gray-800 dark:bg-gray-900/70">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-300">
+                Grafik bar
+              </p>
+              <p class="text-lg font-semibold text-gray-900 dark:text-white">Sebaran wilayah</p>
+            </div>
+            <Badge variant="secondary" class="text-xs">Semua data</Badge>
+          </div>
+
+          <div class="mt-4 grid gap-4 sm:grid-cols-2">
+            <div class="rounded-xl border border-emerald-100/60 bg-white/80 p-3 dark:border-gray-800 dark:bg-gray-900/70">
+              <div class="flex items-center justify-between">
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Kecamatan
+                </p>
+                <span class="text-xs text-gray-400 dark:text-gray-500">
+                  {{ formatNumber(kecamatanDistribution.length) }} total
+                </span>
+              </div>
+              <div v-if="kecamatanBarData.length" class="mt-2">
+                <BarChart
+                  class="h-[240px]"
+                  :style="axisLabelStyle"
+                  :data="kecamatanBarData"
+                  :categories="[barCategoryKey]"
+                  index="name"
+                  :show-legend="false"
+                  :show-grid-line="false"
+                  :show-y-axis="false"
+                  :x-formatter="formatBarLabel(kecamatanBarData)"
+                  :y-formatter="(value) => formatNumber(value)"
+                  :colors="['#10b981']"
+                />
+              </div>
+              <p v-else class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                Belum ada data kecamatan.
+              </p>
+            </div>
+
+            <div class="rounded-xl border border-emerald-100/60 bg-white/80 p-3 dark:border-gray-800 dark:bg-gray-900/70">
+              <div class="flex items-center justify-between">
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Kelurahan
+                </p>
+                <span class="text-xs text-gray-400 dark:text-gray-500">
+                  {{ formatNumber(kelurahanDistribution.length) }} total
+                </span>
+              </div>
+              <div v-if="kelurahanBarData.length" class="mt-2">
+                <BarChart
+                  class="h-[240px]"
+                  :style="axisLabelStyle"
+                  :data="kelurahanBarData"
+                  :categories="[barCategoryKey]"
+                  index="name"
+                  :show-legend="false"
+                  :show-grid-line="false"
+                  :show-y-axis="false"
+                  :x-formatter="formatBarLabel(kelurahanBarData)"
+                  :y-formatter="(value) => formatNumber(value)"
+                  :colors="['#3b82f6']"
+                />
+              </div>
+              <p v-else class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                Belum ada data kelurahan.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -230,155 +551,96 @@ const formatDate = (value) =>
     <section id="data" class="relative overflow-hidden bg-gradient-to-b from-emerald-50 via-white to-white py-16 dark:from-gray-950 dark:via-gray-900 dark:to-gray-900">
       <div class="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_#34d3991a,_transparent_40%)]"></div>
       <div class="mx-auto max-w-6xl px-6">
-        <div class="mb-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p class="text-sm font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-300">
-              Sorotan data lapangan
-            </p>
-            <h2 class="text-3xl font-bold text-gray-900 dark:text-white">Survey terbaru</h2>
-            <p class="mt-2 max-w-2xl text-gray-600 dark:text-gray-400">
-              Enam titik terakhir yang masuk ke sistem, lengkap dengan lokasi dan status utilitas.
-            </p>
-          </div>
-          <Button as-child variant="outline">
-            <Link :href="route('login')">Buka dashboard admin</Link>
-          </Button>
-        </div>
-
-        <div v-if="featuredProviders.length" class="grid gap-6 lg:grid-cols-2">
-          <div
-            v-for="provider in featuredProviders"
-            :key="provider.id"
-            class="relative overflow-hidden rounded-2xl border border-emerald-100/70 bg-white/80 p-5 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl backdrop-blur dark:border-gray-800 dark:bg-gray-900/70"
-          >
-            <div class="absolute inset-0 bg-gradient-to-r from-emerald-500/[0.08] via-transparent to-blue-500/[0.08]"></div>
-            <div class="relative flex items-start justify-between gap-3">
-              <div class="flex items-center gap-3">
-                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-inner">
-                  <SatelliteDish class="h-6 w-6" />
-                </div>
-                <div>
-                  <p class="text-sm text-gray-500 dark:text-gray-400">Provider</p>
-                  <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ provider.name || 'Provider' }}</p>
-                  <p class="text-sm text-emerald-700 dark:text-emerald-300">
-                    {{ provider.utilitas || 'Telekomunikasi' }}
-                  </p>
-                </div>
-              </div>
-              <Badge variant="outline" class="border-emerald-200 text-emerald-700 dark:border-emerald-700/60 dark:text-emerald-200">
-                {{ provider.sijali === 'Y' ? 'Sijali' : 'Survey' }}
-              </Badge>
-            </div>
-
-            <div class="relative mt-4 grid grid-cols-2 gap-3 text-sm text-gray-600 dark:text-gray-400">
-              <div class="flex items-center gap-2">
-                <MapPin class="h-4 w-4 text-emerald-500" />
-                <span>{{ provider.kelurahan || '-' }}, {{ provider.kecamatan || '-' }}</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <Navigation class="h-4 w-4 text-emerald-500" />
-                <span>{{ provider.kota || '-' }} · {{ provider.provinsi || '-' }}</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <Radio class="h-4 w-4 text-emerald-500" />
-                <span>ODP {{ provider.odp || '-' }}</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <Clock4 class="h-4 w-4 text-emerald-500" />
-                <span>{{ formatDate(provider.surveyed_at) }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div
-          v-else
-          class="rounded-2xl border border-dashed border-emerald-200 bg-white/70 p-8 text-center text-gray-500 backdrop-blur dark:border-emerald-900/50 dark:bg-gray-900/60 dark:text-gray-400"
-        >
-          Belum ada data survey terbaru. Tambahkan data dari dashboard admin untuk mulai menampilkan sorotan.
-        </div>
-      </div>
-    </section>
-
-    <!-- Peta Provider -->
-    <section id="map" class="bg-white/90 py-16 dark:bg-gray-950/40">
-      <div class="mx-auto max-w-6xl px-6">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
           <div>
             <p class="text-sm font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-300">
               Peta sebaran
             </p>
-            <h2 class="text-3xl font-bold text-gray-900 dark:text-white">Titik provider terbaru</h2>
+            <h2 class="text-3xl font-bold text-gray-900 dark:text-white">Provider</h2>
             <p class="mt-2 max-w-2xl text-gray-600 dark:text-gray-400">
               Lihat posisi koordinat dan buka langsung di Google Maps untuk verifikasi lapangan.
             </p>
+            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              Menampilkan {{ filteredProviderGroups.length }} provider (total {{ allProviderNames.length }})
+            </p>
           </div>
           <Badge variant="secondary" class="w-fit">
-            {{ mapProviders.length }} titik terpetakan
+            {{ filteredProviderGroups.length }} provider (filter) / {{ allProviderNames.length }} total
           </Badge>
         </div>
 
-        <div v-if="mapProviders.length" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <div
-            v-for="point in mapPaginatedProviders"
-            :key="point.id"
-            class="rounded-2xl border border-emerald-100/70 bg-white/80 p-4 shadow-sm backdrop-blur hover:shadow-md transition dark:border-gray-800 dark:bg-gray-900/70"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <p class="text-xs uppercase tracking-wide text-emerald-600 dark:text-emerald-300">Provider</p>
-                <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ point.name || 'Provider' }}</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400">{{ point.utilitas || 'Telekomunikasi' }}</p>
-              </div>
-              <Badge variant="outline" class="text-xs">
-                {{ point.odp || 'ODP' }}
-              </Badge>
+        <div class="mb-6 rounded-2xl border border-emerald-100/70 bg-white/80 p-4 shadow-sm backdrop-blur dark:border-gray-800 dark:bg-gray-900/70">
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div class="grid gap-3 sm:grid-cols-2">
+              <label class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                Kecamatan
+                <select
+                  v-model="selectedKecamatan"
+                  class="mt-2 w-full rounded-lg border border-emerald-100/70 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
+                >
+                  <option value="">Semua kecamatan</option>
+                  <option v-for="kecamatan in kecamatanOptions" :key="kecamatan.value" :value="kecamatan.value">
+                    {{ kecamatan.label }}
+                  </option>
+                </select>
+              </label>
+              <label class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                Kelurahan
+                <select
+                  v-model="selectedKelurahan"
+                  :disabled="!selectedKecamatan"
+                  class="mt-2 w-full rounded-lg border border-emerald-100/70 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-200 disabled:cursor-not-allowed disabled:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40 dark:disabled:bg-gray-800"
+                >
+                  <option value="">Semua kelurahan</option>
+                  <option v-for="kelurahan in kelurahanOptions" :key="kelurahan.value" :value="kelurahan.value">
+                    {{ kelurahan.label }}
+                  </option>
+                </select>
+              </label>
             </div>
-
-            <div class="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-400">
-              <div class="flex items-center gap-2">
-                <MapPin class="h-4 w-4 text-emerald-500" />
-                <span>{{ point.location || 'Lokasi tidak tersedia' }}</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <Navigation class="h-4 w-4 text-emerald-500" />
-                <span>Lat {{ point.coordinates?.lat ?? '-' }}, Lng {{ point.coordinates?.lng ?? '-' }}</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <Clock4 class="h-4 w-4 text-emerald-500" />
-                <span>{{ formatDate(point.surveyed_at) }}</span>
-              </div>
-            </div>
-
-            <div class="mt-4 flex justify-between items-center">
-              <span class="text-xs text-gray-500 dark:text-gray-400">ID: {{ point.id }}</span>
-              <Button
-                as-child
-                variant="outline"
-                size="sm"
-                class="text-emerald-700 hover:text-emerald-800 dark:text-emerald-200 dark:hover:text-emerald-100"
-                :disabled="!point.maps_url"
-              >
-                <a :href="point.maps_url || '#'" target="_blank" rel="noopener noreferrer">
-                  Buka peta
-                </a>
-              </Button>
+            <div class="text-sm text-gray-600 dark:text-gray-300">
+              <span v-if="selectedKecamatan">{{ selectedKecamatan }}</span>
+              <span v-if="selectedKelurahan"> / {{ selectedKelurahan }}</span>
+              <span v-if="selectedKecamatan || selectedKelurahan"> | </span>
+              <span>Jumlah Provider: {{ filteredProviderNames.length }}</span>
+              <span class="block text-xs text-gray-500 dark:text-gray-400">
+                {{ filteredProviderPreview }}
+              </span>
             </div>
           </div>
         </div>
 
-        <div v-if="mapProviders.length" class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-sm text-gray-600 dark:text-gray-300">
+        <div v-if="filteredProviderGroups.length" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div
+            v-for="point in mapPaginatedProviders"
+            :key="point.key"
+            class="rounded-2xl border border-emerald-100/70 bg-white/80 p-4 shadow-sm backdrop-blur hover:shadow-md transition dark:border-gray-800 dark:bg-gray-900/70"
+          >
+            <p class="text-xs uppercase tracking-wide text-emerald-600 dark:text-emerald-300">Provider</p>
+            <p class="mt-2 text-lg font-semibold text-gray-900 dark:text-white">{{ point.label || 'Provider' }}</p>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              <span v-if="point.sample?.sijali">
+                Nama jalan: {{ point.sample.sijali }} ({{ formatNumber(getStreetProviderCount(point.sample.sijali)) }} provider)
+              </span>
+              <span v-else>Nama jalan belum tersedia</span>
+            </p>
+          </div>
+        </div>
+
+        <div v-if="filteredProviderGroups.length" class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-sm text-gray-600 dark:text-gray-300">
           <div>
             Menampilkan
             <strong class="text-gray-900 dark:text-gray-100">
-              {{ mapProviders.length ? (mapPage - 1) * mapPageSize + 1 : 0 }}
+              {{ filteredProviderGroups.length ? (mapPage - 1) * mapPageSize + 1 : 0 }}
             </strong>
             -
             <strong class="text-gray-900 dark:text-gray-100">
-              {{ Math.min(mapPage * mapPageSize, mapProviders.length) }}
+              {{ Math.min(mapPage * mapPageSize, filteredProviderGroups.length) }}
             </strong>
             dari
-            <strong class="text-gray-900 dark:text-gray-100">{{ mapProviders.length }}</strong>
-            titik
+            <strong class="text-gray-900 dark:text-gray-100">{{ filteredProviderGroups.length }}</strong>
+            provider
+            <span class="text-gray-500 dark:text-gray-400"> (total {{ allProviderNames.length }})</span>
           </div>
           <div class="flex items-center gap-2">
             <Button
@@ -407,47 +669,44 @@ const formatDate = (value) =>
           v-else
           class="mt-4 rounded-2xl border border-dashed border-emerald-200 bg-white/70 p-6 text-center text-gray-500 dark:border-emerald-900/50 dark:bg-gray-900/60 dark:text-gray-400"
         >
-          Belum ada titik dengan koordinat. Tambahkan data provider beserta koordinat untuk melihat peta.
+          Tidak ada data yang cocok dengan filter. Ubah filter kecamatan atau kelurahan untuk melihat provider.
         </div>
       </div>
     </section>
 
-    <!-- Cakupan wilayah -->
-    <section id="coverage" class="bg-white/90 py-16 dark:bg-gray-950/50">
+    <!-- Permohonan -->
+    <section id="permohonan" class="bg-white/90 py-16 dark:bg-gray-950/50">
       <div class="mx-auto max-w-6xl px-6">
         <div class="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p class="text-sm font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-300">
-              Cakupan wilayah Surakarta
+              Permohonan izin provider
             </p>
-            <h2 class="text-3xl font-bold text-gray-900 dark:text-white">Kecamatan dengan kontribusi data tertinggi</h2>
+            <h2 class="text-3xl font-bold text-gray-900 dark:text-white">Daftar permohonan legal</h2>
             <p class="mt-2 max-w-2xl text-gray-600 dark:text-gray-400">
-              Gambaran cepat daerah yang paling aktif menyuplai data utilitas.
+              Data dummy pengajuan izin provider untuk pemantauan legalitas di landing page.
             </p>
           </div>
-          <Badge variant="secondary" class="w-fit">
-            {{ formatNumber(stats?.coverageDistricts) }} kecamatan · {{ formatNumber(stats?.coverageVillages) }} kelurahan
-          </Badge>
         </div>
 
-        <div v-if="coverage.length" class="grid gap-4 md:grid-cols-2">
+        <div v-if="legalPermitRequests.length" class="grid gap-4 md:grid-cols-2">
           <div
-            v-for="area in coverage"
-            :key="area.kecamatan"
-            class="flex items-center justify-between rounded-2xl border border-emerald-100/60 bg-gradient-to-r from-white via-emerald-50/60 to-white px-5 py-4 shadow-sm backdrop-blur dark:border-gray-800 dark:from-gray-900 dark:via-emerald-900/20 dark:to-gray-900"
+            v-for="request in legalPermitRequests"
+            :key="request.id"
+            class="flex flex-col gap-3 rounded-2xl border border-emerald-100/60 bg-gradient-to-r from-white via-emerald-50/60 to-white px-5 py-4 shadow-sm backdrop-blur dark:border-gray-800 dark:from-gray-900 dark:via-emerald-900/20 dark:to-gray-900"
           >
-            <div>
-              <p class="text-sm text-gray-500 dark:text-gray-400">Kecamatan</p>
-              <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ area.kecamatan }}</p>
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <p class="text-xs uppercase tracking-wide text-emerald-600 dark:text-emerald-300">Provider</p>
+                <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ request.provider }}</p>
+              </div>
+              <Badge variant="secondary" class="w-fit">Legal</Badge>
             </div>
-            <div class="flex items-center gap-3">
-              <div class="text-right">
-                <p class="text-sm text-gray-500 dark:text-gray-400">Jumlah titik</p>
-                <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-300">{{ formatNumber(area.total) }}</p>
-              </div>
-              <div class="h-12 w-12 rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200 flex items-center justify-center font-semibold">
-                {{ area.kecamatan?.charAt(0) || 'K' }}
-              </div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">
+              {{ request.kelurahan }}, {{ request.kecamatan }}
+            </div>
+            <div class="text-xs text-gray-500 dark:text-gray-400">
+              Diajukan {{ formatDate(request.submitted_at) }}
             </div>
           </div>
         </div>
@@ -455,72 +714,7 @@ const formatDate = (value) =>
           v-else
           class="rounded-2xl border border-dashed border-emerald-200 bg-white/70 p-8 text-center text-gray-500 backdrop-blur dark:border-emerald-900/50 dark:bg-gray-900/60 dark:text-gray-400"
         >
-          Data cakupan provinsi belum tersedia. Tambahkan data provider untuk melihat distribusi wilayah.
-        </div>
-      </div>
-    </section>
-
-    <!-- Timeline -->
-    <section id="timeline" class="bg-gradient-to-b from-white to-emerald-50 py-16 dark:from-gray-900 dark:to-gray-950">
-      <div class="mx-auto max-w-6xl px-6">
-        <div class="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p class="text-sm font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-300">
-              Kecepatan survey
-            </p>
-            <h2 class="text-3xl font-bold text-gray-900 dark:text-white">Ritme input data mingguan</h2>
-            <p class="mt-2 max-w-2xl text-gray-600 dark:text-gray-400">
-              Pantau seberapa sering data survey baru masuk untuk menjaga kualitas informasi.
-            </p>
-          </div>
-        </div>
-
-        <div class="overflow-hidden rounded-2xl border border-emerald-100/60 bg-white/80 p-6 shadow-md backdrop-blur dark:border-gray-800 dark:bg-gray-900/70">
-          <div v-if="timeline.length" class="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
-            <div
-              v-for="item in timeline"
-              :key="item.date"
-              class="flex flex-col gap-2 rounded-xl bg-emerald-50/70 p-4 text-emerald-800 ring-1 ring-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-100 dark:ring-emerald-900/50"
-            >
-              <p class="text-sm font-semibold">{{ formatDate(item.date) }}</p>
-              <div class="h-20 w-full rounded-lg bg-white/70 p-2 shadow-inner dark:bg-gray-900/60">
-                <div
-                  class="rounded-md bg-gradient-to-t from-emerald-500 to-emerald-300 shadow-sm"
-                  :style="{ height: Math.min(100, (item.total ?? 0) * 20) + '%' }"
-                ></div>
-              </div>
-              <p class="text-xs text-emerald-700 dark:text-emerald-200">{{ formatNumber(item.total) }} titik</p>
-            </div>
-          </div>
-          <div
-            v-else
-            class="rounded-xl border border-dashed border-emerald-200 bg-white/60 p-6 text-center text-gray-500 dark:border-emerald-900/60 dark:bg-gray-900/40 dark:text-gray-400"
-          >
-            Belum ada data survey terjadwal. Input survei berikutnya untuk memantau ritme pengumpulan data.
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- CTA -->
-    <section class="bg-emerald-600 py-14">
-      <div class="mx-auto max-w-5xl px-6 text-center text-white">
-        <div class="flex justify-center">
-          <div class="rounded-full bg-white/15 px-4 py-2 text-sm font-semibold uppercase tracking-wide">
-            Siap melanjutkan
-          </div>
-        </div>
-        <h3 class="mt-4 text-3xl font-bold sm:text-4xl">Sinkronkan survei berikutnya</h3>
-        <p class="mt-3 text-emerald-50">
-          Login untuk mengelola data, menambah titik baru, dan ekspor laporan CSV dari dashboard admin.
-        </p>
-        <div class="mt-6 flex justify-center gap-4">
-          <Button as-child size="lg" variant="secondary" class="text-emerald-700">
-            <Link :href="route('login')">Masuk sekarang</Link>
-          </Button>
-          <Button as-child size="lg" variant="outline" class="border-white/50 text-white hover:bg-white/10">
-            <a href="#hero">Kembali ke atas</a>
-          </Button>
+          Belum ada permohonan legal yang bisa ditampilkan.
         </div>
       </div>
     </section>

@@ -74,11 +74,16 @@ const scrollToSection = (sectionId) => {
     <header class="fixed top-0 left-0 right-0 z-50 w-full bg-white/85 backdrop-blur-md dark:bg-gray-900/85 supports-[backdrop-filter]:backdrop-blur">
       <nav class="flex items-center justify-between px-6 py-4 lg:px-8 max-w-full shadow-sm">
         <!-- Logo -->
-        <button type="button" @click="scrollToSection('hero')" class="flex items-center gap-3 flex-shrink-0 focus:outline-none">
-          <div class="h-12 w-12 bg-green-600 rounded-lg flex items-center justify-center shadow-lg shadow-green-500/30">
-            <span class="text-white font-bold text-lg">P</span>
-          </div>
-          <span class="text-xl font-bold text-gray-900 dark:text-white">Provider Insight</span>
+        <button
+          type="button"
+          @click="scrollToSection('hero')"
+          class="flex items-center gap-3 flex-shrink-0 rounded-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-3 py-2 shadow-md ring-1 ring-slate-900/20 backdrop-blur focus:outline-none dark:bg-gray-900/80 dark:ring-gray-700/80"
+        >
+          <img
+            src="/images/DISPERUMKIMTAN.png"
+            alt="DISPERUMKIMTAN Logo"
+            class="h-12 w-auto drop-shadow-[0_2px_6px_rgba(255,255,255,0.25)]"
+          />
         </button>
 
         <!-- Navigation Menu -->
@@ -105,17 +110,10 @@ const scrollToSection = (sectionId) => {
           </Link>
           <button
             type="button"
-            @click="scrollToSection('coverage')"
+            @click="scrollToSection('permohonan')"
             class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors whitespace-nowrap"
           >
-            Cakupan
-          </button>
-          <button
-            type="button"
-            @click="scrollToSection('timeline')"
-            class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors whitespace-nowrap"
-          >
-            Pembaruan
+            Permohonan
           </button>
         </div>
 
@@ -245,8 +243,8 @@ const scrollToSection = (sectionId) => {
                 </Link>
               </li>
               <li>
-                <button @click="scrollToSection('coverage')" class="hover:text-white transition-colors text-left">
-                  Cakupan
+                <button @click="scrollToSection('permohonan')" class="hover:text-white transition-colors text-left">
+                  Permohonan
                 </button>
               </li>
               <li>

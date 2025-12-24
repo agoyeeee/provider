@@ -9,6 +9,30 @@ use Inertia\Inertia;
 
 class LandingController extends Controller
 {
+    private function normalizeProviderKey(string $value): string
+    {
+        $normalized = strtolower(trim($value));
+        return preg_replace('/[^a-z0-9]/', '', $normalized) ?? '';
+    }
+
+    private function normalizeProviderName(?string $value): string
+    {
+        $raw = trim((string) $value);
+        if ($raw === '') {
+            return '';
+        }
+
+        if (str_contains($raw, '/')) {
+            $parts = array_filter(array_map('trim', explode('/', $raw)), fn ($part) => $part !== '');
+            $normalizedParts = array_values(array_filter(array_map(fn ($part) => $this->normalizeProviderKey($part), $parts)));
+            if ($normalizedParts && count(array_unique($normalizedParts)) === 1) {
+                return $normalizedParts[0];
+            }
+        }
+
+        return $this->normalizeProviderKey($raw);
+    }
+
     /**
      * Show the public landing page with provider highlights.
      */
@@ -21,8 +45,14 @@ class LandingController extends Controller
         $stats = [
             'totalRecords' => Provider::count(),
             'uniqueProviders' => Provider::whereNotNull('n_provider')
-                ->distinct('n_provider')
-                ->count('n_provider'),
+                ->pluck('n_provider')
+                ->flatMap(function ($value) {
+                    return collect(explode(',', $value))
+                        ->map(fn ($name) => $this->normalizeProviderName($name))
+                        ->filter(fn ($name) => $name !== '');
+                })
+                ->unique()
+                ->count(),
             'coverageDistricts' => Provider::whereNotNull('kecamatan')
                 ->distinct('kecamatan')
                 ->count('kecamatan'),
@@ -89,15 +119,12 @@ class LandingController extends Controller
             ]);
 
         $mapProviders = Provider::query()
-            ->whereNotNull('x')
-            ->whereNotNull('y')
             ->orderByDesc('tgl_survey')
-            ->limit(50)
             ->get()
             ->map(function (Provider $provider) {
                 return [
                     'id' => $provider->id,
-                    'name' => $provider->n_provider ?? 'Provider',
+                    'name' => $provider->n_provider,
                     'location' => trim(
                         collect([$provider->kelurahan, $provider->kecamatan, $provider->kota, $provider->provinsi])
                             ->filter()
@@ -106,6 +133,7 @@ class LandingController extends Controller
                     'kecamatan' => $provider->kecamatan,
                     'kelurahan' => $provider->kelurahan,
                     'odp' => $provider->odp,
+                    'sijali' => $provider->sijali,
                     'utilitas' => $provider->utilitas,
                     'surveyed_at' => $provider->tgl_survey?->format('Y-m-d'),
                     'coordinates' => [
@@ -143,7 +171,7 @@ class LandingController extends Controller
                 return [
                     'id' => $provider->id,
                     'fid' => $provider->fid,
-                    'name' => $provider->n_provider ?? 'Provider',
+                    'name' => $provider->n_provider,
                     'location' => trim(
                         collect([$provider->kelurahan, $provider->kecamatan, $provider->kota, $provider->provinsi])
                             ->filter()

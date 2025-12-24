@@ -1,11 +1,18 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 import LandingLayout from '@/Layouts/LandingLayout.vue'
 import { Button } from '@/Components/ui/button'
 import { Input } from '@/Components/ui/input'
 import { Badge } from '@/Components/ui/badge'
-import { MapPin, Navigation, Clock4, Search, Home, Globe2, Satellite } from 'lucide-vue-next'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/Components/ui/select'
+import { Navigation, Clock4, Search, Home, Globe2, Satellite, X } from 'lucide-vue-next'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -29,6 +36,13 @@ const props = defineProps({
 })
 
 const search = ref('')
+const isSearchOpen = ref(true)
+const filterProvider = ref('all')
+const filterKelurahan = ref('all')
+const filterJalan = ref('all')
+const jalanSearch = ref('')
+const isJalanOpen = ref(false)
+const jalanSearchInput = ref(null)
 const mapInstance = ref(null)
 const markerLayer = ref(null)
 const activeBaseLayer = ref(null)
@@ -44,10 +58,91 @@ function collectSearchableValue(value) {
   return String(value)
 }
 
+function normalizeProviderName(value) {
+  return String(value ?? '').toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+function splitProviderNames(value) {
+  return String(value ?? '')
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean)
+}
+
+const providerOptions = computed(() => {
+  const optionMap = new Map()
+  props.mapProviders.forEach((provider) => {
+    const providerNames = splitProviderNames(provider?.name)
+    providerNames.forEach((rawName) => {
+      const key = normalizeProviderName(rawName)
+      if (!key) return
+      if (!optionMap.has(key)) {
+        optionMap.set(key, rawName)
+      }
+    })
+  })
+  return Array.from(optionMap.values()).sort((a, b) => a.localeCompare(b))
+})
+
+const kelurahanOptions = computed(() => {
+  const optionMap = new Map()
+  props.mapProviders.forEach((provider) => {
+    const rawName = String(provider?.kelurahan ?? '').trim()
+    if (!rawName) return
+    const key = rawName.toLowerCase()
+    if (!optionMap.has(key)) {
+      optionMap.set(key, rawName)
+    }
+  })
+  return Array.from(optionMap.values()).sort((a, b) => a.localeCompare(b))
+})
+
+const jalanOptions = computed(() => {
+  const optionMap = new Map()
+  props.mapProviders.forEach((provider) => {
+    const rawName = String(provider?.sijali ?? '').trim()
+    if (!rawName) return
+    const key = rawName.toLowerCase()
+    if (!optionMap.has(key)) {
+      optionMap.set(key, rawName)
+    }
+  })
+  return Array.from(optionMap.values()).sort((a, b) => a.localeCompare(b))
+})
+
+const filteredJalanOptions = computed(() => {
+  const keyword = jalanSearch.value.trim().toLowerCase()
+  if (!keyword) return jalanOptions.value
+  return jalanOptions.value.filter((jalan) => jalan.toLowerCase().includes(keyword))
+})
+
 const filteredProviders = computed(() => {
   const keyword = search.value.trim().toLowerCase()
-  if (!keyword) return props.mapProviders
-  return props.mapProviders.filter((p) => collectSearchableValue(p).toLowerCase().includes(keyword))
+  const providerFilter = filterProvider.value.trim().toLowerCase()
+  const kelurahanFilter = filterKelurahan.value.trim().toLowerCase()
+  const jalanFilter = filterJalan.value.trim().toLowerCase()
+  const providerFilterKey = providerFilter === 'all' ? 'all' : normalizeProviderName(providerFilter)
+
+  if (
+    !keyword &&
+    providerFilter === 'all' &&
+    kelurahanFilter === 'all' &&
+    jalanFilter === 'all'
+  ) {
+    return props.mapProviders
+  }
+
+  return props.mapProviders.filter((p) => {
+    const kelurahanName = String(p?.kelurahan ?? '').toLowerCase()
+    const jalanName = String(p?.sijali ?? '').trim().toLowerCase()
+    const providerNames = splitProviderNames(p?.name).map((name) => normalizeProviderName(name))
+
+    if (providerFilterKey !== 'all' && !providerNames.includes(providerFilterKey)) return false
+    if (kelurahanFilter !== 'all' && kelurahanName !== kelurahanFilter) return false
+    if (jalanFilter !== 'all' && jalanName !== jalanFilter) return false
+    if (keyword && !collectSearchableValue(p).toLowerCase().includes(keyword)) return false
+    return true
+  })
 })
 
 const initialCenter = computed(() => {
@@ -75,12 +170,37 @@ watch(
     renderMarkers()
   },
 )
-watch(search, () => {
+watch([search, filterProvider, filterKelurahan, filterJalan], () => {
   mapPage.value = 1
   renderMarkers()
 })
 watch(mapPage, () => {
   renderMarkers()
+})
+watch(isJalanOpen, (open) => {
+  if (!open) {
+    jalanSearch.value = ''
+    return
+  }
+  jalanSearch.value = ''
+  nextTick(() => {
+    jalanSearchInput.value?.focus?.()
+  })
+})
+watch(jalanSearch, (value) => {
+  const keyword = value.trim().toLowerCase()
+  if (!keyword) {
+    if (filterJalan.value !== 'all') {
+      filterJalan.value = 'all'
+    }
+    return
+  }
+  if (filterJalan.value !== 'all') {
+    const current = filterJalan.value.trim().toLowerCase()
+    if (!current.includes(keyword)) {
+      filterJalan.value = 'all'
+    }
+  }
 })
 
 onMounted(() => {
@@ -186,8 +306,8 @@ function handleSelectProvider(p) {
         <div id="provider-map" class="h-full w-full"></div>
       </div>
       <!-- Controls -->
-      <div class="fixed top-24 right-4 z-40 flex flex-col items-end gap-3">
-        <div class="flex items-center gap-2 rounded-full bg-white/90 px-3 py-2 shadow-lg backdrop-blur dark:bg-gray-800/90">
+      <div class="fixed top-20 right-4 left-4 z-40 flex flex-col items-stretch gap-3 sm:top-24 md:left-auto md:items-end">
+        <div class="flex w-full flex-wrap items-center gap-2 rounded-2xl bg-white/90 px-3 py-2 shadow-lg backdrop-blur dark:bg-gray-800/90 md:w-auto md:rounded-full">
           <Button size="sm" variant="ghost" class="text-gray-700 dark:text-gray-200" as-child title="Beranda">
             <Link :href="route('landing')">
               <Home class="h-4 w-4" />
@@ -199,19 +319,87 @@ function handleSelectProvider(p) {
           <Button size="sm" variant="ghost" class="text-gray-700 dark:text-gray-200" @click="switchBase('satellite')" title="Satellite">
             <Satellite class="h-4 w-4" />
           </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            class="text-gray-700 dark:text-gray-200"
+            @click="isSearchOpen = !isSearchOpen"
+            :title="isSearchOpen ? 'Tutup Filter' : 'Buka Filter'"
+          >
+            <Search class="h-4 w-4" />
+            <span class="ml-2 hidden text-xs font-medium sm:inline">
+              {{ isSearchOpen ? 'Tutup Filter' : 'Buka Filter' }}
+            </span>
+          </Button>
+          <Select v-model="filterProvider">
+            <SelectTrigger class="w-full sm:w-52 md:w-44">
+              <SelectValue placeholder="Pilih Provider" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Provider</SelectItem>
+              <SelectItem v-for="provider in providerOptions" :key="provider" :value="provider">
+                {{ provider }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <Select v-model="filterKelurahan">
+            <SelectTrigger class="w-full sm:w-52 md:w-44">
+              <SelectValue placeholder="Pilih Kelurahan" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Kelurahan</SelectItem>
+              <SelectItem v-for="kelurahan in kelurahanOptions" :key="kelurahan" :value="kelurahan">
+                {{ kelurahan }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <Select v-model="filterJalan" v-model:open="isJalanOpen">
+            <SelectTrigger class="w-full sm:w-52 md:w-44">
+              <SelectValue placeholder="Pilih Nama Jalan" />
+            </SelectTrigger>
+            <SelectContent>
+              <div class="p-2">
+                <Input
+                  ref="jalanSearchInput"
+                  v-model="jalanSearch"
+                  placeholder="Cari nama jalan..."
+                  class="h-8"
+                  @keydown.stop
+                />
+              </div>
+              <SelectItem value="all">Semua Jalan</SelectItem>
+              <SelectItem v-for="jalan in filteredJalanOptions" :key="jalan" :value="jalan">
+                {{ jalan }}
+              </SelectItem>
+              <div v-if="!filteredJalanOptions.length" class="px-3 pb-2 text-xs text-gray-500 dark:text-gray-400">
+                Jalan tidak ditemukan.
+              </div>
+            </SelectContent>
+          </Select>
         </div>
 
-        <div class="w-72 max-w-sm rounded-2xl bg-white/95 p-4 shadow-xl backdrop-blur dark:bg-gray-900/90">
+        <div v-show="isSearchOpen" class="w-full rounded-2xl bg-white/95 p-4 shadow-xl backdrop-blur dark:bg-gray-900/90 sm:w-96 md:w-72 md:max-w-sm">
           <div class="flex items-center gap-2 mb-3">
             <Search class="h-4 w-4 text-emerald-600" />
             <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Cari Provider / ODP / Sijali / Kecamatan / Kelurahan</h3>
+            <Button
+              size="icon"
+              variant="ghost"
+              class="ml-auto h-8 w-8 rounded-full bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-rose-500/10 dark:text-rose-300"
+              @click="isSearchOpen = false"
+              title="Tutup"
+            >
+              <X class="h-4 w-4" />
+            </Button>
           </div>
-          <Input
-            v-model="search"
-            placeholder="Cari provider, ODP, Sijali, Kecamatan, Kelurahan..."
-            class="w-full mb-3"
-          />
-          <div class="max-h-64 overflow-y-auto space-y-2">
+          <div class="space-y-2 mb-3">
+            <Input
+              v-model="search"
+              placeholder="Cari provider, ODP, Sijali, Kecamatan, Kelurahan..."
+              class="w-full"
+            />
+          </div>
+          <div class="max-h-52 overflow-y-auto space-y-2 sm:max-h-64">
             <div
               v-for="point in paginatedProviders"
               :key="point.id"
