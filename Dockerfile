@@ -108,6 +108,9 @@ COPY --from=frontend-builder /app/public/build /var/www/html/public/build
 COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf
 COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
 
+# Copy PHP-FPM configuration
+COPY docker/php-fpm.conf /usr/local/etc/php-fpm.d/www.conf
+
 # Copy supervisor configuration
 COPY docker/supervisord.conf /etc/supervisord.conf
 
