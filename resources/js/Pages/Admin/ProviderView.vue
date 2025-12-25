@@ -419,11 +419,11 @@ const formatDate = (dateStr) => {
                 <h1 class="text-lg font-semibold">Data Provider</h1>
                 <div class="flex gap-2">
                     <Button variant="outline" size="sm" @click="triggerImport">
-                        Import CSV
+                        Import
                     </Button>
                     <Button variant="outline" size="sm" @click="exportData">
                         <Download class="w-4 h-4 mr-2" />
-                        Export CSV
+                        Export
                     </Button>
                     <Button size="sm" @click="openAddDialog">
                         <Plus class="w-4 h-4 mr-2" />
