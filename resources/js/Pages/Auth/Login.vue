@@ -122,19 +122,6 @@ const submit = () => {
         </form>
       </div>
 
-      <!-- Footer - Register link -->
-      <div class="text-center space-y-3">
-        <p class="text-sm text-muted-foreground">
-          Don't have an account?
-          <Link :href="route('register')"
-            class="text-primary hover:text-primary/80 font-medium hover:underline transition-colors duration-200 ml-1">
-            Sign up here
-          </Link>
-        </p>
-        <p class="text-sm text-muted-foreground">
-          Sistem terbatas untuk admin dan alumni terdaftar
-        </p>
-      </div>
     </div>
   </div>
 </template>
