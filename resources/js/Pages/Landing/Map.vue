@@ -16,6 +16,18 @@ import { Navigation, Clock4, Search, Home, Globe2, Satellite, X } from 'lucide-v
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
+// Fix Leaflet default marker icon issue with Vite
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
+import markerIcon from 'leaflet/dist/images/marker-icon.png'
+import markerShadow from 'leaflet/dist/images/marker-shadow.png'
+
+delete L.Icon.Default.prototype._getIconUrl
+L.Icon.Default.mergeOptions({
+  iconUrl: markerIcon,
+  iconRetinaUrl: markerIcon2x,
+  shadowUrl: markerShadow,
+})
+
 const props = defineProps({
   mapProviders: {
     type: Array,
@@ -299,6 +311,7 @@ function handleSelectProvider(p) {
 
 <template>
   <LandingLayout :can-login="canLogin" :can-register="canRegister" :show-footer="false">
+
     <Head title="Peta Provider" />
 
     <section class="relative min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -306,26 +319,25 @@ function handleSelectProvider(p) {
         <div id="provider-map" class="h-full w-full"></div>
       </div>
       <!-- Controls -->
-      <div class="fixed top-20 right-4 left-4 z-40 flex flex-col items-stretch gap-3 sm:top-24 md:left-auto md:items-end">
-        <div class="flex w-full flex-wrap items-center gap-2 rounded-2xl bg-white/90 px-3 py-2 shadow-lg backdrop-blur dark:bg-gray-800/90 md:w-auto md:rounded-full">
+      <div
+        class="fixed top-20 right-4 left-4 z-40 flex flex-col items-stretch gap-3 sm:top-24 md:left-auto md:items-end">
+        <div
+          class="flex w-full flex-wrap items-center gap-2 rounded-2xl bg-white/90 px-3 py-2 shadow-lg backdrop-blur dark:bg-gray-800/90 md:w-auto md:rounded-full">
           <Button size="sm" variant="ghost" class="text-gray-700 dark:text-gray-200" as-child title="Beranda">
             <Link :href="route('landing')">
               <Home class="h-4 w-4" />
             </Link>
           </Button>
-          <Button size="sm" variant="ghost" class="text-gray-700 dark:text-gray-200" @click="switchBase('osm')" title="OpenStreetMap">
+          <Button size="sm" variant="ghost" class="text-gray-700 dark:text-gray-200" @click="switchBase('osm')"
+            title="OpenStreetMap">
             <Globe2 class="h-4 w-4" />
           </Button>
-          <Button size="sm" variant="ghost" class="text-gray-700 dark:text-gray-200" @click="switchBase('satellite')" title="Satellite">
+          <Button size="sm" variant="ghost" class="text-gray-700 dark:text-gray-200" @click="switchBase('satellite')"
+            title="Satellite">
             <Satellite class="h-4 w-4" />
           </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            class="text-gray-700 dark:text-gray-200"
-            @click="isSearchOpen = !isSearchOpen"
-            :title="isSearchOpen ? 'Tutup Filter' : 'Buka Filter'"
-          >
+          <Button size="sm" variant="ghost" class="text-gray-700 dark:text-gray-200"
+            @click="isSearchOpen = !isSearchOpen" :title="isSearchOpen ? 'Tutup Filter' : 'Buka Filter'">
             <Search class="h-4 w-4" />
             <span class="ml-2 hidden text-xs font-medium sm:inline">
               {{ isSearchOpen ? 'Tutup Filter' : 'Buka Filter' }}
@@ -359,13 +371,8 @@ function handleSelectProvider(p) {
             </SelectTrigger>
             <SelectContent>
               <div class="p-2">
-                <Input
-                  ref="jalanSearchInput"
-                  v-model="jalanSearch"
-                  placeholder="Cari nama jalan..."
-                  class="h-8"
-                  @keydown.stop
-                />
+                <Input ref="jalanSearchInput" v-model="jalanSearch" placeholder="Cari nama jalan..." class="h-8"
+                  @keydown.stop />
               </div>
               <SelectItem value="all">Semua Jalan</SelectItem>
               <SelectItem v-for="jalan in filteredJalanOptions" :key="jalan" :value="jalan">
@@ -378,38 +385,30 @@ function handleSelectProvider(p) {
           </Select>
         </div>
 
-        <div v-show="isSearchOpen" class="w-full rounded-2xl bg-white/95 p-4 shadow-xl backdrop-blur dark:bg-gray-900/90 sm:w-96 md:w-72 md:max-w-sm">
+        <div v-show="isSearchOpen"
+          class="w-full rounded-2xl bg-white/95 p-4 shadow-xl backdrop-blur dark:bg-gray-900/90 sm:w-96 md:w-72 md:max-w-sm">
           <div class="flex items-center gap-2 mb-3">
             <Search class="h-4 w-4 text-emerald-600" />
-            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Cari Provider / ODP / Sijali / Kecamatan / Kelurahan</h3>
-            <Button
-              size="icon"
-              variant="ghost"
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Cari Provider / ODP / Sijali / Kecamatan /
+              Kelurahan</h3>
+            <Button size="icon" variant="ghost"
               class="ml-auto h-8 w-8 rounded-full bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-rose-500/10 dark:text-rose-300"
-              @click="isSearchOpen = false"
-              title="Tutup"
-            >
+              @click="isSearchOpen = false" title="Tutup">
               <X class="h-4 w-4" />
             </Button>
           </div>
           <div class="space-y-2 mb-3">
-            <Input
-              v-model="search"
-              placeholder="Cari provider, ODP, Sijali, Kecamatan, Kelurahan..."
-              class="w-full"
-            />
+            <Input v-model="search" placeholder="Cari provider, ODP, Sijali, Kecamatan, Kelurahan..." class="w-full" />
           </div>
           <div class="max-h-52 overflow-y-auto space-y-2 sm:max-h-64">
-            <div
-              v-for="point in paginatedProviders"
-              :key="point.id"
+            <div v-for="point in paginatedProviders" :key="point.id"
               class="cursor-pointer rounded-xl border border-gray-100 bg-white p-3 shadow-sm hover:shadow-md transition dark:border-gray-800 dark:bg-gray-800/80"
-              @click="handleSelectProvider(point)"
-            >
+              @click="handleSelectProvider(point)">
               <div class="flex items-start justify-between gap-2">
                 <div>
                   <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ point.name || 'Provider' }}</p>
-                  <p class="text-xs text-gray-500 dark:text-gray-400">{{ point.location || 'Lokasi tidak tersedia' }}</p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">{{ point.location || 'Lokasi tidak tersedia' }}
+                  </p>
                   <p class="text-xs text-gray-500 dark:text-gray-400">Kecamatan: {{ point.kecamatan || '-' }}</p>
                   <p class="text-xs text-gray-500 dark:text-gray-400">Kelurahan: {{ point.kelurahan || '-' }}</p>
                   <p class="text-xs text-amber-600 dark:text-amber-300">Sijali: {{ point.sijali || '-' }}</p>
@@ -418,7 +417,8 @@ function handleSelectProvider(p) {
               </div>
               <div class="mt-1 flex flex-wrap items-center gap-3 text-[11px] text-gray-600 dark:text-gray-400">
                 <span class="inline-flex items-center gap-1">
-                  <Navigation class="h-3 w-3" /> {{ point.coordinates?.lat ?? '-' }}, {{ point.coordinates?.lng ?? '-' }}
+                  <Navigation class="h-3 w-3" /> {{ point.coordinates?.lat ?? '-' }}, {{ point.coordinates?.lng ?? '-'
+                  }}
                 </span>
                 <span class="inline-flex items-center gap-1">
                   <Clock4 class="h-3 w-3" /> {{ point.surveyed_at || '-' }}
@@ -432,8 +432,10 @@ function handleSelectProvider(p) {
           <div class="mt-3 flex items-center justify-between text-xs text-gray-600 dark:text-gray-300">
             <span>{{ filteredProviders.length }} titik - Hal {{ mapPage }} / {{ mapTotalPages }}</span>
             <div class="flex gap-2">
-              <Button size="sm" variant="outline" :disabled="mapPage <= 1" @click="mapPage = Math.max(1, mapPage - 1)">Prev</Button>
-              <Button size="sm" variant="outline" :disabled="mapPage >= mapTotalPages" @click="mapPage = Math.min(mapTotalPages, mapPage + 1)">Next</Button>
+              <Button size="sm" variant="outline" :disabled="mapPage <= 1"
+                @click="mapPage = Math.max(1, mapPage - 1)">Prev</Button>
+              <Button size="sm" variant="outline" :disabled="mapPage >= mapTotalPages"
+                @click="mapPage = Math.min(mapTotalPages, mapPage + 1)">Next</Button>
             </div>
           </div>
         </div>
