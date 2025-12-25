@@ -1,9 +1,11 @@
 services:
   # Laravel Application
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/agoyeeee/provider:latest
+    # Untuk development lokal, comment 'image' di atas dan uncomment 'build' di bawah:
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
     container_name: provider-app
     restart: unless-stopped
     ports:

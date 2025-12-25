@@ -73,6 +73,11 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script: |
             cd /var/www/provider
+            
+            # Login to GitHub Container Registry
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ secrets.GHCR_USERNAME }} --password-stdin
+            
+            # Pull latest image and deploy
             docker compose pull
             docker compose up -d --force-recreate
             docker system prune -f
