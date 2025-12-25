@@ -37,6 +37,12 @@ services:
       - provider-network
     volumes:
       - app-storage:/var/www/html/storage/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/up"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   # MySQL Database
   provider-mysql:
