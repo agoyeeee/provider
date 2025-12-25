@@ -14,7 +14,6 @@ class ProviderSeeder extends Seeder
     {
         $providers = [
             [
-                'fid' => 'FID001',
                 'provinsi' => 'JAWA BARAT',
                 'kota' => 'BANDUNG',
                 'kecamatan' => 'COBLONG',
@@ -30,7 +29,6 @@ class ProviderSeeder extends Seeder
                 'tgl_survey' => '2025-01-15',
             ],
             [
-                'fid' => 'FID002',
                 'provinsi' => 'JAWA BARAT',
                 'kota' => 'BANDUNG',
                 'kecamatan' => 'SUKAJADI',
@@ -46,7 +44,6 @@ class ProviderSeeder extends Seeder
                 'tgl_survey' => '2025-01-16',
             ],
             [
-                'fid' => 'FID003',
                 'provinsi' => 'DKI JAKARTA',
                 'kota' => 'JAKARTA SELATAN',
                 'kecamatan' => 'KEBAYORAN BARU',
@@ -62,7 +59,6 @@ class ProviderSeeder extends Seeder
                 'tgl_survey' => '2025-01-17',
             ],
             [
-                'fid' => 'FID004',
                 'provinsi' => 'DKI JAKARTA',
                 'kota' => 'JAKARTA PUSAT',
                 'kecamatan' => 'MENTENG',
@@ -78,7 +74,6 @@ class ProviderSeeder extends Seeder
                 'tgl_survey' => '2025-01-18',
             ],
             [
-                'fid' => 'FID005',
                 'provinsi' => 'JAWA TIMUR',
                 'kota' => 'SURABAYA',
                 'kecamatan' => 'GUBENG',

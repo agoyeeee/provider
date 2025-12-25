@@ -23,8 +23,8 @@ class LandingController extends Controller
         }
 
         if (str_contains($raw, '/')) {
-            $parts = array_filter(array_map('trim', explode('/', $raw)), fn ($part) => $part !== '');
-            $normalizedParts = array_values(array_filter(array_map(fn ($part) => $this->normalizeProviderKey($part), $parts)));
+            $parts = array_filter(array_map('trim', explode('/', $raw)), fn($part) => $part !== '');
+            $normalizedParts = array_values(array_filter(array_map(fn($part) => $this->normalizeProviderKey($part), $parts)));
             if ($normalizedParts && count(array_unique($normalizedParts)) === 1) {
                 return $normalizedParts[0];
             }
@@ -48,8 +48,8 @@ class LandingController extends Controller
                 ->pluck('n_provider')
                 ->flatMap(function ($value) {
                     return collect(explode(',', $value))
-                        ->map(fn ($name) => $this->normalizeProviderName($name))
-                        ->filter(fn ($name) => $name !== '');
+                        ->map(fn($name) => $this->normalizeProviderName($name))
+                        ->filter(fn($name) => $name !== '');
                 })
                 ->unique()
                 ->count(),
@@ -76,7 +76,6 @@ class LandingController extends Controller
             ->map(function (Provider $provider) {
                 return [
                     'id' => $provider->id,
-                    'fid' => $provider->fid,
                     'name' => $provider->n_provider,
                     'utilitas' => $provider->utilitas,
                     'kota' => $provider->kota,
@@ -101,7 +100,7 @@ class LandingController extends Controller
             ->orderByDesc('total')
             ->limit(5)
             ->get()
-            ->map(fn ($row) => [
+            ->map(fn($row) => [
                 'kecamatan' => $row->kecamatan,
                 'total' => $row->total,
             ]);
@@ -113,7 +112,7 @@ class LandingController extends Controller
             ->orderByDesc(DB::raw('DATE(tgl_survey)'))
             ->limit(6)
             ->get()
-            ->map(fn ($row) => [
+            ->map(fn($row) => [
                 'date' => $row->date,
                 'total' => $row->total,
             ]);
@@ -170,7 +169,6 @@ class LandingController extends Controller
             ->map(function (Provider $provider) {
                 return [
                     'id' => $provider->id,
-                    'fid' => $provider->fid,
                     'name' => $provider->n_provider,
                     'location' => trim(
                         collect([$provider->kelurahan, $provider->kecamatan, $provider->kota, $provider->provinsi])

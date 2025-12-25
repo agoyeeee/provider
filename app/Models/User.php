@@ -39,7 +39,6 @@ class User extends Authenticatable
         'kontak',
         'name',
         'email',
-        'sso_id',
         'password',
         'role',
     ];

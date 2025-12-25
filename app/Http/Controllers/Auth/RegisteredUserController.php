@@ -44,7 +44,6 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
             'kontak' => '',
             'role' => 'pemilik_umkm', // Default role for new registrations
-            'sso_id' => '',
         ]);
 
         event(new Registered($user));

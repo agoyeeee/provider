@@ -12,7 +12,6 @@ class Provider extends Model
     protected $table = 'providers';
 
     protected $fillable = [
-        'fid',
         'provinsi',
         'kota',
         'kecamatan',

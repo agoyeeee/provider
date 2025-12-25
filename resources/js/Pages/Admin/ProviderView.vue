@@ -88,7 +88,6 @@ const importInput = ref(null)
 
 // Form data
 const form = ref({
-    fid: '',
     provinsi: '',
     kota: '',
     kecamatan: '',
@@ -122,7 +121,6 @@ const fotoInput = ref(null)
 // Reset form
 const resetForm = () => {
     form.value = {
-        fid: '',
         provinsi: '',
         kota: '',
         kecamatan: '',
@@ -154,7 +152,6 @@ const openAddDialog = () => {
 const openEditDialog = (provider) => {
     selectedProvider.value = provider
     form.value = {
-        fid: provider.fid || '',
         provinsi: provider.provinsi || '',
         kota: provider.kota || '',
         kecamatan: provider.kecamatan || '',
@@ -329,7 +326,6 @@ watch(searchQuery, (newValue) => {
 const exportData = () => {
     // Simple CSV export
     const headers = [
-        'FID',
         'Provinsi',
         'Kota',
         'Kecamatan',
@@ -345,7 +341,6 @@ const exportData = () => {
         'Tgl Survey',
     ]
     const rows = props.providers.map((p) => [
-        p.fid || '',
         p.provinsi || '',
         p.kota || '',
         p.kecamatan || '',
@@ -432,13 +427,7 @@ const formatDate = (dateStr) => {
                 </div>
             </div>
         </template>
-        <input
-            ref="importInput"
-            type="file"
-            accept=".xlsx,.xls"
-            class="hidden"
-            @change="handleImport"
-        />
+        <input ref="importInput" type="file" accept=".xlsx,.xls" class="hidden" @change="handleImport" />
 
         <div class="py-6">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
@@ -447,7 +436,7 @@ const formatDate = (dateStr) => {
                     <Card>
                         <CardHeader class="pb-2">
                             <CardDescription>Total Data</CardDescription>
-                    <CardTitle class="text-3xl">{{ stats.total }}</CardTitle>
+                            <CardTitle class="text-3xl">{{ stats.total }}</CardTitle>
                         </CardHeader>
                     </Card>
                     <Card>
@@ -465,7 +454,7 @@ const formatDate = (dateStr) => {
                     <Card>
                         <CardHeader class="pb-2">
                             <CardDescription>Jumlah Provider</CardDescription>
-                    <CardTitle class="text-3xl">{{ stats.totalProvider }}</CardTitle>
+                            <CardTitle class="text-3xl">{{ stats.totalProvider }}</CardTitle>
                         </CardHeader>
                     </Card>
                 </div>
@@ -484,8 +473,7 @@ const formatDate = (dateStr) => {
                             <div class="md:col-span-2">
                                 <div class="relative">
                                     <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                    <Input v-model="searchQuery" placeholder="Cari FID, Provider, ODP..."
-                                        class="pl-10" />
+                                    <Input v-model="searchQuery" placeholder="Cari Provider, ODP..." class="pl-10" />
                                 </div>
                             </div>
 
@@ -559,7 +547,8 @@ const formatDate = (dateStr) => {
                                 <TableBody>
                                     <TableRow v-for="(provider, index) in paginatedProviders" :key="provider.id"
                                         class="hover:bg-gray-50 dark:hover:bg-gray-800">
-                                        <TableCell class="font-medium">{{ (currentPage - 1) * pageSize + index + 1 }}</TableCell>
+                                        <TableCell class="font-medium">{{ (currentPage - 1) * pageSize + index + 1 }}
+                                        </TableCell>
                                         <TableCell>{{ provider.provinsi || '-' }}</TableCell>
                                         <TableCell>{{ provider.kota || '-' }}</TableCell>
                                         <TableCell>{{ provider.kecamatan || '-' }}</TableCell>
@@ -571,12 +560,9 @@ const formatDate = (dateStr) => {
                                         </TableCell>
                                         <TableCell>
                                             <template v-if="provider.sijali_link">
-                                                <a
-                                                    :href="provider.sijali_link"
-                                                    target="_blank"
+                                                <a :href="provider.sijali_link" target="_blank"
                                                     rel="noopener noreferrer"
-                                                    class="text-blue-600 hover:underline dark:text-blue-300"
-                                                >
+                                                    class="text-blue-600 hover:underline dark:text-blue-300">
                                                     {{ provider.sijali || 'Detail Sijali' }}
                                                 </a>
                                             </template>
@@ -607,10 +593,8 @@ const formatDate = (dateStr) => {
                                                         Edit
                                                     </DropdownMenuItem>
                                                     <DropdownMenuSeparator />
-                                                    <DropdownMenuItem
-                                                        class="text-red-600 focus:text-red-700"
-                                                        @click="openDeleteDialog(provider)"
-                                                    >
+                                                    <DropdownMenuItem class="text-red-600 focus:text-red-700"
+                                                        @click="openDeleteDialog(provider)">
                                                         <Trash2 class="mr-2 h-4 w-4" />
                                                         Hapus
                                                     </DropdownMenuItem>
@@ -626,7 +610,8 @@ const formatDate = (dateStr) => {
                                 </TableBody>
                             </Table>
                         </div>
-                        <div class="flex items-center justify-between border-t px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                        <div
+                            class="flex items-center justify-between border-t px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
                             <div class="flex items-center gap-4">
                                 <div>
                                     Menampilkan
@@ -638,19 +623,19 @@ const formatDate = (dateStr) => {
                                         {{ Math.min(currentPage * pageSize, props.providers.length) }}
                                     </strong>
                                     dari
-                                    <strong class="text-gray-900 dark:text-gray-100">{{ props.providers.length }}</strong>
+                                    <strong class="text-gray-900 dark:text-gray-100">{{ props.providers.length
+                                    }}</strong>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <span class="hidden sm:inline">Baris per halaman</span>
-                                    <Select
-                                        :modelValue="String(pageSize)"
-                                        @update:modelValue="(val) => { pageSize = Number(val); currentPage = 1; }"
-                                    >
+                                    <Select :modelValue="String(pageSize)"
+                                        @update:modelValue="(val) => { pageSize = Number(val); currentPage = 1; }">
                                         <SelectTrigger class="w-[70px]">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem v-for="size in pageSizeOptions" :key="size" :value="String(size)">
+                                            <SelectItem v-for="size in pageSizeOptions" :key="size"
+                                                :value="String(size)">
                                                 {{ size }}
                                             </SelectItem>
                                         </SelectContent>
@@ -658,23 +643,15 @@ const formatDate = (dateStr) => {
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    :disabled="currentPage <= 1"
-                                    @click="currentPage = Math.max(1, currentPage - 1)"
-                                >
+                                <Button variant="outline" size="sm" :disabled="currentPage <= 1"
+                                    @click="currentPage = Math.max(1, currentPage - 1)">
                                     &laquo;
                                 </Button>
                                 <span class="px-2 text-sm">
                                     {{ currentPage }} / {{ totalPages }}
                                 </span>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    :disabled="currentPage >= totalPages"
-                                    @click="currentPage = Math.min(totalPages, currentPage + 1)"
-                                >
+                                <Button variant="outline" size="sm" :disabled="currentPage >= totalPages"
+                                    @click="currentPage = Math.min(totalPages, currentPage + 1)">
                                     &raquo;
                                 </Button>
                             </div>
@@ -695,12 +672,6 @@ const formatDate = (dateStr) => {
                 </DialogHeader>
                 <form @submit.prevent="submitAdd" class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- FID -->
-                        <div class="space-y-2">
-                            <Label for="add-fid">FID</Label>
-                            <Input id="add-fid" v-model="form.fid" placeholder="Feature ID" />
-                        </div>
-
                         <!-- Provinsi -->
                         <div class="space-y-2">
                             <Label for="add-provinsi">Provinsi *</Label>
@@ -758,12 +729,8 @@ const formatDate = (dateStr) => {
                         <!-- Sijali Link -->
                         <div class="space-y-2">
                             <Label for="add-sijali_link">Link Detail Sijali</Label>
-                            <Input
-                                id="add-sijali_link"
-                                v-model="form.sijali_link"
-                                type="url"
-                                placeholder="https://sijali.surakarta.go.id/..."
-                            />
+                            <Input id="add-sijali_link" v-model="form.sijali_link" type="url"
+                                placeholder="https://sijali.surakarta.go.id/..." />
                         </div>
 
                         <!-- X (Longitude) -->
@@ -781,12 +748,8 @@ const formatDate = (dateStr) => {
                         <!-- Tanggal Survey -->
                         <div class="space-y-2">
                             <Label for="add-tgl_survey">Tanggal Survey</Label>
-                            <Input
-                                id="add-tgl_survey"
-                                v-model="form.tgl_survey"
-                                type="date"
-                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:[color-scheme:dark]"
-                            />
+                            <Input id="add-tgl_survey" v-model="form.tgl_survey" type="date"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:[color-scheme:dark]" />
                         </div>
                         <!-- Empty space for grid alignment -->
                         <!-- User -->
@@ -832,12 +795,6 @@ const formatDate = (dateStr) => {
                 </DialogHeader>
                 <form @submit.prevent="submitEdit" class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- FID -->
-                        <div class="space-y-2">
-                            <Label for="edit-fid">FID</Label>
-                            <Input id="edit-fid" v-model="form.fid" placeholder="Feature ID" />
-                        </div>
-
                         <!-- Provinsi -->
                         <div class="space-y-2">
                             <Label for="edit-provinsi">Provinsi *</Label>
@@ -896,12 +853,8 @@ const formatDate = (dateStr) => {
                         <!-- Sijali Link -->
                         <div class="space-y-2">
                             <Label for="edit-sijali_link">Link Detail Sijali</Label>
-                            <Input
-                                id="edit-sijali_link"
-                                v-model="form.sijali_link"
-                                type="url"
-                                placeholder="https://sijali.surakarta.go.id/..."
-                            />
+                            <Input id="edit-sijali_link" v-model="form.sijali_link" type="url"
+                                placeholder="https://sijali.surakarta.go.id/..." />
                         </div>
 
                         <!-- X (Longitude) -->
@@ -974,9 +927,6 @@ const formatDate = (dateStr) => {
                 </DialogHeader>
                 <div v-if="selectedProvider" class="py-4">
                     <p class="text-sm">
-                        <strong>FID:</strong> {{ selectedProvider.fid || '-' }}
-                    </p>
-                    <p class="text-sm">
                         <strong>Provider:</strong> {{ selectedProvider.n_provider || '-' }}
                     </p>
                     <p class="text-sm">
@@ -1007,10 +957,6 @@ const formatDate = (dateStr) => {
 
                     <!-- Info Grid -->
                     <div class="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                            <p class="text-gray-500">FID</p>
-                            <p class="font-medium">{{ detailProvider.fid || '-' }}</p>
-                        </div>
                         <div>
                             <p class="text-gray-500">Nama Provider</p>
                             <p class="font-medium">{{ detailProvider.n_provider || '-' }}</p>
@@ -1049,12 +995,8 @@ const formatDate = (dateStr) => {
                         </div>
                         <div v-if="detailProvider.sijali_link">
                             <p class="text-gray-500">Link Sijali</p>
-                            <a
-                                :href="detailProvider.sijali_link"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="font-medium text-blue-600 hover:underline dark:text-blue-300"
-                            >
+                            <a :href="detailProvider.sijali_link" target="_blank" rel="noopener noreferrer"
+                                class="font-medium text-blue-600 hover:underline dark:text-blue-300">
                                 Buka detail jalan
                             </a>
                         </div>

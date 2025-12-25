@@ -113,8 +113,7 @@ class ProviderController extends Controller
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('fid', 'like', '%' . $search . '%')
-                    ->orWhere('provinsi', 'like', '%' . $search . '%')
+                $q->where('provinsi', 'like', '%' . $search . '%')
                     ->orWhere('kota', 'like', '%' . $search . '%')
                     ->orWhere('kecamatan', 'like', '%' . $search . '%')
                     ->orWhere('kelurahan', 'like', '%' . $search . '%')
@@ -126,7 +125,6 @@ class ProviderController extends Controller
         $providers = $query->orderBy('created_at', 'desc')->get()->map(function ($item) {
             return [
                 'id' => $item->id,
-                'fid' => $item->fid,
                 'provinsi' => $item->provinsi,
                 'kota' => $item->kota,
                 'kecamatan' => $item->kecamatan,
@@ -172,7 +170,6 @@ class ProviderController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'fid' => 'nullable|string|max:255',
             'provinsi' => 'required|string|max:255',
             'kota' => 'required|string|max:255',
             'kecamatan' => 'required|string|max:255',
@@ -191,7 +188,6 @@ class ProviderController extends Controller
         ]);
 
         $data = $request->only([
-            'fid',
             'provinsi',
             'kota',
             'kecamatan',
@@ -226,7 +222,6 @@ class ProviderController extends Controller
         $provider = Provider::findOrFail($id);
 
         $request->validate([
-            'fid' => 'nullable|string|max:255',
             'provinsi' => 'required|string|max:255',
             'kota' => 'required|string|max:255',
             'kecamatan' => 'required|string|max:255',
@@ -245,7 +240,6 @@ class ProviderController extends Controller
         ]);
 
         $data = $request->only([
-            'fid',
             'provinsi',
             'kota',
             'kecamatan',
@@ -367,7 +361,6 @@ class ProviderController extends Controller
         // fallback header order if normalization fails
         if (!array_filter($headerMap, fn($h) => !empty($h))) {
             $headerMap = [
-                'fid',
                 'provinsi',
                 'kota',
                 'kecamatan',
@@ -385,8 +378,6 @@ class ProviderController extends Controller
         }
 
         $fieldMap = [
-            'no' => 'fid',
-            'fid' => 'fid',
             'provinsi' => 'provinsi',
             'kota' => 'kota',
             'kecamatan' => 'kecamatan',
@@ -441,7 +432,6 @@ class ProviderController extends Controller
             }
 
             $payload = [
-                'fid' => $data['fid'] ?? null,
                 'provinsi' => $data['provinsi'] ?? null,
                 'kota' => $data['kota'] ?? null,
                 'kecamatan' => $data['kecamatan'] ?? null,
@@ -477,15 +467,16 @@ class ProviderController extends Controller
                 return $v === '' ? null : $v;
             }, $payload);
 
-            // determine if there is any meaningful data besides fid/id_user
+            // determine if there is any meaningful data besides id_user
             $dataForCheck = $payload;
-            unset($dataForCheck['fid'], $dataForCheck['id_user']);
+            unset($dataForCheck['id_user']);
             $hasNewData = array_filter($dataForCheck, fn($v) => $v !== null && $v !== '') !== [];
 
-            if (!empty($payload['fid'])) {
-                $existing = Provider::where('fid', $payload['fid'])->first();
+            // Check for existing record by ODP (if available)
+            if (!empty($payload['odp'])) {
+                $existing = Provider::where('odp', $payload['odp'])->first();
                 if (!$hasNewData && !$existing) {
-                    // skip empty rows that only carry numbering
+                    // skip empty rows
                     continue;
                 }
                 if (!$hasNewData && $existing) {

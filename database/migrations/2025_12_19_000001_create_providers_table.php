@@ -9,7 +9,6 @@ return new class extends Migration {
     {
         Schema::create('providers', function (Blueprint $table) {
             $table->id();
-            $table->string('fid')->nullable()->comment('Feature ID');
             $table->string('provinsi')->nullable();
             $table->string('kota')->nullable();
             $table->string('kecamatan')->nullable();
@@ -19,6 +18,7 @@ return new class extends Migration {
             $table->string('n_provider')->nullable()->comment('Nama Provider');
             $table->string('odp')->nullable()->comment('Optical Distribution Point');
             $table->string('sijali')->nullable()->comment('Sijali');
+            $table->string('sijali_link')->nullable()->comment('URL detail Sijali');
             $table->decimal('x', 15, 10)->nullable()->comment('Longitude');
             $table->decimal('y', 15, 10)->nullable()->comment('Latitude');
             $table->string('foto')->nullable()->comment('Path foto');

@@ -8,7 +8,6 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
-use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
@@ -35,19 +34,6 @@ Route::middleware('guest')->group(function () {
     Route::post('reset-password', [NewPasswordController::class, 'store'])
         ->name('password.store');
 });
-
-// SSO Routes - Outside guest middleware to handle both guest and auth states
-Route::get('auth/sso/redirect', [SsoController::class, 'redirectToProvider'])
-    ->middleware('web')
-    ->name('sso.redirect');
-
-Route::get('auth/sso/callback', [SsoController::class, 'handleProviderCallback'])
-    ->middleware('web')
-    ->name('sso.callback');
-
-// Debug routes (remove in production)
-Route::get('debug/sso/config', [App\Http\Controllers\Auth\SsoDebugController::class, 'debugConfig']);
-Route::get('debug/sso/test-url', [App\Http\Controllers\Auth\SsoDebugController::class, 'testRedirectUrl']);
 
 Route::middleware('auth')->group(function () {
     Route::get('verify-email', EmailVerificationPromptController::class)
