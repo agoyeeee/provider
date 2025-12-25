@@ -399,7 +399,7 @@ const legalPermitRequests = computed(() =>
           </div>
           <div class="space-y-4">
             <h1 class="text-4xl font-bold leading-tight text-gray-900 dark:text-white sm:text-5xl">
-              SIPJALIN
+              heheheha
             </h1>
             <h2 class="text-3xl font-bold leading-tight text-gray-900 dark:text-white sm:text-5xl">
               Sistem Informasi Provider Jalan lingkungan
