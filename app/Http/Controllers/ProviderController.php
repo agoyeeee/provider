@@ -13,6 +13,83 @@ use Inertia\Inertia;
 class ProviderController extends Controller
 {
     /**
+     * Parse coordinate value that may be in Indonesian format (dot as thousands separator).
+     * Examples:
+     * - "1.108.347.869" → 108.347869 (Indonesian format with leading "1.")
+     * - "108.347869" → 108.347869 (standard format)
+     * - "-7.532.665.349" → -7.532665349 (negative with Indonesian format)
+     * - 108.347869 → 108.347869 (already a float)
+     */
+    private function parseCoordinate($value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        // If it's already a proper float, return it
+        if (is_float($value) || is_int($value)) {
+            return (float) $value;
+        }
+
+        $value = trim((string) $value);
+
+        // Check if the value uses Indonesian format (multiple dots as thousands separator)
+        // Indonesian format: "1.108.347.869" means "1108347869" which should be "108.347869"
+        $dotCount = substr_count($value, '.');
+
+        if ($dotCount >= 2) {
+            // Handle negative values
+            $isNegative = str_starts_with($value, '-');
+            $cleanValue = ltrim($value, '-');
+
+            // Remove all dots (thousands separators) and treat as integer-like string
+            $withoutDots = str_replace('.', '', $cleanValue);
+
+            // For Indonesian coordinates:
+            // Longitude (x): typically 95-141 degrees (3 digits before decimal)
+            // Latitude (y): typically -11 to 6 degrees (1-2 digits before decimal)
+
+            // Determine where to place the decimal point based on expected coordinate range
+            $length = strlen($withoutDots);
+
+            if ($isNegative) {
+                // Latitude (negative values for Indonesia, typically -1 to -11)
+                // The format "-7.532.665.349" should become "-7.532665349"
+                // First part before first dot is the integer part
+                $parts = explode('.', $cleanValue);
+                $integerPart = $parts[0];
+                $decimalParts = array_slice($parts, 1);
+                $decimalPart = implode('', $decimalParts);
+                $result = (float) ($integerPart . '.' . $decimalPart);
+                return -$result;
+            } else {
+                // Longitude (positive values for Indonesia, typically 95-141)
+                // The format "1.108.347.869" should become "108.347869"
+                // Check if first part is "1" (common prefix issue)
+                $parts = explode('.', $cleanValue);
+
+                if ($parts[0] === '1' && count($parts) >= 2) {
+                    // Skip the leading "1." and reconstruct
+                    // "1.108.347.869" → integer part is "108", decimal is "347869"
+                    $integerPart = $parts[1];
+                    $decimalParts = array_slice($parts, 2);
+                    $decimalPart = implode('', $decimalParts);
+                    return (float) ($integerPart . '.' . $decimalPart);
+                } else {
+                    // Standard case: first part is integer, rest is decimal
+                    $integerPart = $parts[0];
+                    $decimalParts = array_slice($parts, 1);
+                    $decimalPart = implode('', $decimalParts);
+                    return (float) ($integerPart . '.' . $decimalPart);
+                }
+            }
+        }
+
+        // Standard format with single dot as decimal separator
+        return (float) $value;
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
@@ -375,8 +452,8 @@ class ProviderController extends Controller
                 'odp' => $data['odp'] ?? null,
                 'sijali' => $data['sijali'] ?? null,
                 'sijali_link' => $data['sijali_link'] ?? null,
-                'x' => isset($data['x']) && $data['x'] !== '' ? (float) $data['x'] : null,
-                'y' => isset($data['y']) && $data['y'] !== '' ? (float) $data['y'] : null,
+                'x' => $this->parseCoordinate($data['x'] ?? null),
+                'y' => $this->parseCoordinate($data['y'] ?? null),
                 'foto' => $data['foto'] ?? ($data['kode_foto'] ?? null),
                 'foto_url' => $data['foto_url'] ?? null,
                 'tgl_survey' => null,
