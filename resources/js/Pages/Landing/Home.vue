@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 import LandingLayout from '@/Layouts/LandingLayout.vue'
-import { Button } from '@/Components/ui/button'
+import { Button, buttonVariants } from '@/Components/ui/button'
 import { Card, CardContent } from '@/Components/ui/card'
 import { Badge } from '@/Components/ui/badge'
 import { BarChart } from '@/Components/ui/chart-bar'
@@ -409,12 +409,12 @@ const legalPermitRequests = computed(() =>
             </p>
           </div>
           <div class="flex flex-wrap items-center gap-3">
-            <Button as-child size="lg" class="shadow-lg shadow-emerald-500/20">
-              <a href="#data">Lihat data provider</a>
-            </Button>
-            <Button as-child size="lg" variant="outline" class="backdrop-blur">
-              <Link :href="route('login')">Masuk dashboard</Link>
-            </Button>
+            <a href="#data" :class="[buttonVariants({ size: 'lg' }), 'shadow-lg shadow-emerald-500/20']">
+              Lihat data provider
+            </a>
+            <Link :href="route('login')" :class="[buttonVariants({ size: 'lg', variant: 'outline' }), 'backdrop-blur']">
+              Masuk dashboard
+            </Link>
           </div>
 
         </div>

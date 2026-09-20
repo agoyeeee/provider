@@ -2,78 +2,36 @@ services:
   # Laravel Application
   app:
     image: ghcr.io/agoyeeee/provider:latest
-    # Untuk development lokal, comment 'image' di atas dan uncomment 'build' di bawah:
-    # build:
-    #   context: .
-    #   dockerfile: Dockerfile
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: provider-app
     restart: unless-stopped
-    ports:
-      - "8082:80"
+    network_mode: host
     environment:
       - APP_NAME=${APP_NAME:-Provider}
-      - APP_ENV=${APP_ENV:-production}
+      - APP_ENV=${APP_ENV:-local}
       - APP_KEY=${APP_KEY}
-      - APP_DEBUG=${APP_DEBUG:-false}
-      - APP_URL=${APP_URL:-http://localhost}
+      - APP_DEBUG=${APP_DEBUG:-true}
+      - APP_URL=${APP_URL:-http://localhost:8082}
       - APP_LOCALE=${APP_LOCALE:-en}
       - APP_FALLBACK_LOCALE=${APP_FALLBACK_LOCALE:-en}
       - DB_CONNECTION=mysql
-      - DB_HOST=provider-mysql
+      - DB_HOST=127.0.0.1
       - DB_PORT=3306
       - DB_DATABASE=${DB_DATABASE:-provider}
-      - DB_USERNAME=${DB_USERNAME:-provider}
-      - DB_PASSWORD=${DB_PASSWORD:-secret}
+      - DB_USERNAME=${DB_USERNAME:-ronaltama}
+      - DB_PASSWORD=${DB_PASSWORD:-ronaltama}
       - CACHE_STORE=${CACHE_STORE:-database}
       - SESSION_DRIVER=${SESSION_DRIVER:-database}
       - SESSION_LIFETIME=${SESSION_LIFETIME:-120}
       - QUEUE_CONNECTION=${QUEUE_CONNECTION:-database}
       - LOG_CHANNEL=${LOG_CHANNEL:-stack}
-      - LOG_LEVEL=${LOG_LEVEL:-error}
-    depends_on:
-      provider-mysql:
-        condition: service_healthy
-    networks:
-      - provider-network
+      - LOG_LEVEL=${LOG_LEVEL:-debug}
     volumes:
+      - ./.env:/var/www/html/.env
       - app-storage:/var/www/html/storage/app
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/up"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-
-  # MySQL Database
-  provider-mysql:
-    image: mysql:8.0
-    container_name: provider-mysql
-    restart: unless-stopped
-    command: --default-authentication-plugin=mysql_native_password
-    environment:
-      - MYSQL_DATABASE=provider
-      - MYSQL_USER=provider
-      - MYSQL_PASSWORD=secret
-      - MYSQL_ROOT_PASSWORD=rootsecret
-    ports:
-      - "3307:3306"
-    volumes:
-      - provider-mysql-data:/var/lib/mysql
-    networks:
-      - provider-network
-    healthcheck:
-      test: ["CMD", "mysql", "-h", "localhost", "-u", "root", "-prootsecret", "-e", "SELECT 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-
-networks:
-  provider-network:
-    driver: bridge
 
 volumes:
-  provider-mysql-data:
-    driver: local
   app-storage:
     driver: local

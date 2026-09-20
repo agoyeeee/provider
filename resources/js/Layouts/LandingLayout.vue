@@ -1,6 +1,6 @@
 <script setup>
 import { Link } from "@inertiajs/vue3";
-import { Button } from "@/Components/ui/button";
+import { Button, buttonVariants } from "@/Components/ui/button";
 import { ref, onMounted } from "vue";
 
 defineProps({
@@ -125,18 +125,21 @@ const scrollToSection = (sectionId) => {
 
           <!-- Auth Links -->
           <div v-if="canLogin" class="flex items-center space-x-4">
-            <Button v-if="$page.props.auth?.user" as-child class="whitespace-nowrap">
-              <Link :href="$page.props.auth.user.role === 'admin' ? route('admin.dashboard') : route('profile.edit')">
-                Dashboard
-              </Link>
-            </Button>
+            <Link
+              v-if="$page.props.auth?.user"
+              :href="$page.props.auth?.user?.role === 'admin' ? route('admin.dashboard') : route('profile.edit')"
+              :class="[buttonVariants(), 'whitespace-nowrap']"
+            >
+              Dashboard
+            </Link>
 
             <template v-else>
-              <Button as-child variant="outline" class="whitespace-nowrap">
-                <Link :href="route('login')">
-                  Log in
-                </Link>
-              </Button>
+              <Link
+                :href="route('login')"
+                :class="[buttonVariants({ variant: 'outline' }), 'whitespace-nowrap']"
+              >
+                Log in
+              </Link>
             </template>
           </div>
         </div>

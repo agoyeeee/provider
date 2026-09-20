@@ -110,6 +110,7 @@ COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
 
 # Copy PHP-FPM configuration
 COPY docker/php-fpm.conf /usr/local/etc/php-fpm.d/www.conf
+RUN rm -f /usr/local/etc/php-fpm.d/zz-docker.conf
 
 # Copy supervisor configuration
 COPY docker/supervisord.conf /etc/supervisord.conf

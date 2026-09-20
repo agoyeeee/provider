@@ -9,15 +9,22 @@ echo "DB_DATABASE: $DB_DATABASE"
 echo "Waiting for MySQL to be ready..."
 sleep 10
 
+# Ensure .env file exists
+if [ ! -f /var/www/html/.env ]; then
+    echo "Creating .env from .env.example..."
+    cp /var/www/html/.env.example /var/www/html/.env
+fi
+
 # Generate app key if not set
 if [ -z "$APP_KEY" ]; then
     echo "Generating application key..."
     php artisan key:generate --force
 fi
 
-# Run migrations
-echo "Running migrations..."
-php artisan migrate --force
+# Run migrations & seeders
+echo "Running migrations and seeders..."
+php artisan migrate --seed --force
+
 
 # Clear and cache config
 echo "Optimizing application..."
