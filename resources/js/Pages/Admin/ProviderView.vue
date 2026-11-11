@@ -68,6 +68,7 @@ const props = defineProps({
         default: () => ({
             kecamatan: [],
             kelurahan: [],
+            sijali: [],
             n_provider: [],
         }),
     },
@@ -113,6 +114,7 @@ const detailProvider = ref(null)
 const searchQuery = ref(props.filters?.search || '')
 const filterKecamatan = ref(props.filters?.kecamatan || 'all')
 const filterKelurahan = ref(props.filters?.kelurahan || 'all')
+const filterSijali = ref(props.filters?.sijali || 'all')
 const filterNProvider = ref(props.filters?.n_provider || 'all')
 
 // File input ref
@@ -295,6 +297,7 @@ const applyFilters = () => {
             search: searchQuery.value || undefined,
             kecamatan: (filterKecamatan.value && filterKecamatan.value !== 'all') ? filterKecamatan.value : undefined,
             kelurahan: (filterKelurahan.value && filterKelurahan.value !== 'all') ? filterKelurahan.value : undefined,
+            sijali: (filterSijali.value && filterSijali.value !== 'all') ? filterSijali.value : undefined,
             n_provider: (filterNProvider.value && filterNProvider.value !== 'all') ? filterNProvider.value : undefined,
         },
         {
@@ -309,6 +312,7 @@ const resetFilters = () => {
     searchQuery.value = ''
     filterKecamatan.value = 'all'
     filterKelurahan.value = 'all'
+    filterSijali.value = 'all'
     filterNProvider.value = 'all'
     router.get(route('admin.provider.index'))
 }
@@ -468,12 +472,12 @@ const formatDate = (dateStr) => {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
                             <!-- Search -->
-                            <div class="md:col-span-2">
+                            <div class="sm:col-span-2 md:col-span-3 xl:col-span-2">
                                 <div class="relative">
                                     <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                    <Input v-model="searchQuery" placeholder="Cari Provider, ODP..." class="pl-10" />
+                                    <Input v-model="searchQuery" placeholder="Cari Provider, Jalan, ODP..." class="pl-10" />
                                 </div>
                             </div>
 
@@ -499,6 +503,19 @@ const formatDate = (dateStr) => {
                                     <SelectItem value="all">Semua Kelurahan</SelectItem>
                                     <SelectItem v-for="kel in filterOptions.kelurahan" :key="kel" :value="kel">
                                         {{ kel }}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            <!-- Nama Jalan Filter -->
+                            <Select v-model="filterSijali" @update:modelValue="applyFilters">
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Pilih Nama Jalan" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Semua Jalan</SelectItem>
+                                    <SelectItem v-for="jl in filterOptions.sijali" :key="jl" :value="jl">
+                                        {{ jl }}
                                     </SelectItem>
                                 </SelectContent>
                             </Select>

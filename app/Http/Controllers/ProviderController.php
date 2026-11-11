@@ -104,6 +104,11 @@ class ProviderController extends Controller
             $query->where('kelurahan', $request->kelurahan);
         }
 
+        // Filter by nama jalan (sijali)
+        if ($request->filled('sijali')) {
+            $query->where('sijali', $request->sijali);
+        }
+
         // Filter by provider name
         if ($request->filled('n_provider')) {
             $query->where('n_provider', 'like', '%' . $request->n_provider . '%');
@@ -117,6 +122,7 @@ class ProviderController extends Controller
                     ->orWhere('kota', 'like', '%' . $search . '%')
                     ->orWhere('kecamatan', 'like', '%' . $search . '%')
                     ->orWhere('kelurahan', 'like', '%' . $search . '%')
+                    ->orWhere('sijali', 'like', '%' . $search . '%')
                     ->orWhere('n_provider', 'like', '%' . $search . '%')
                     ->orWhere('odp', 'like', '%' . $search . '%');
             });
@@ -153,6 +159,7 @@ class ProviderController extends Controller
         $filterOptions = [
             'kecamatan' => Provider::distinct()->pluck('kecamatan')->filter()->values(),
             'kelurahan' => Provider::distinct()->pluck('kelurahan')->filter()->values(),
+            'sijali' => Provider::distinct()->whereNotNull('sijali')->pluck('sijali')->filter()->values(),
             'n_provider' => Provider::distinct()->pluck('n_provider')->filter()->values(),
         ];
 
@@ -160,7 +167,7 @@ class ProviderController extends Controller
             'providers' => $providers,
             'users' => $users,
             'filterOptions' => $filterOptions,
-            'filters' => $request->only(['kelurahan', 'kecamatan', 'n_provider', 'search']),
+            'filters' => $request->only(['kelurahan', 'kecamatan', 'sijali', 'n_provider', 'search']),
         ]);
     }
 

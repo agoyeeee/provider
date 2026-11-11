@@ -133,23 +133,22 @@ const customTooltipFormatter = (d) => {
 </script>
 
 <template>
-  <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{{ title }}</h3>
+  <div :class="cn('w-full flex flex-col items-center justify-center', $attrs.class ?? '')">
+    <h3 v-if="title && title !== 'Chart'" class="text-base font-semibold text-gray-900 dark:text-white mb-2">{{ title }}</h3>
 
-    <div v-if="chartData && chartData.length > 0" class="space-y-4">
+    <div v-if="chartData && chartData.length > 0" class="w-full flex flex-col items-center justify-center">
       <!-- Chart Container -->
-      <div :class="cn('w-full h-64 flex flex-col items-center', $attrs.class ?? '')">
+      <div class="w-full h-64 flex flex-col items-center justify-center relative">
         <VisSingleContainer
           :style="{ height: isMounted ? '100%' : 'auto', width: '100%' }"
-          :margin="{ top: 20, bottom: 20, left: 20, right: 20 }"
+          :margin="{ top: 10, bottom: 10, left: 10, right: 10 }"
           :data="chartData"
         >
-          <!-- Remove or customize the tooltip -->
           <VisDonut
             :value="(d) => d[category]"
             :sort-function="sortFunction"
             :color="colors"
-            :arc-width="type === 'donut' ? 20 : 0"
+            :arc-width="type === 'donut' ? 28 : 0"
             :show-background="false"
             :central-label="type === 'donut' ? valueFormatter(totalValue) : ''"
             :events="{
@@ -166,7 +165,6 @@ const customTooltipFormatter = (d) => {
                     elements[i].style.opacity = '1';
                   }
                 },
-                // Remove hover tooltip
                 mouseover: () => {},
                 mouseout: () => {}
               },
@@ -176,7 +174,7 @@ const customTooltipFormatter = (d) => {
       </div>
 
       <!-- Custom Legend -->
-      <div v-if="showLegend" class="space-y-2">
+      <div v-if="showLegend" class="space-y-2 w-full mt-4">
         <div
           v-for="(item, index) in dataWithPercentages"
           :key="item.name"
@@ -194,24 +192,24 @@ const customTooltipFormatter = (d) => {
             <span class="text-xs">({{ item.percentage }}%)</span>
           </div>
         </div>
-      </div>
 
-      <!-- Summary -->
-      <div class="pt-2 border-t border-gray-200 dark:border-gray-700">
-        <div class="flex justify-between items-center text-sm font-medium">
-          <span class="text-gray-700 dark:text-gray-300">Total</span>
-          <span class="text-gray-900 dark:text-white">{{ totalValue }}</span>
+        <div class="pt-2 border-t border-gray-200 dark:border-gray-700">
+          <div class="flex justify-between items-center text-sm font-medium">
+            <span class="text-gray-700 dark:text-gray-300">Total</span>
+            <span class="text-gray-900 dark:text-white">{{ totalValue }}</span>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- No Data State -->
-    <div v-else class="flex items-center justify-center h-64">
+    <div v-else class="flex items-center justify-center h-48 w-full">
       <div class="text-center">
-        <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        <svg class="mx-auto h-10 w-10 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
         </svg>
-        <p class="mt-2 text-gray-500 dark:text-gray-400">Tidak ada data untuk ditampilkan</p>
+        <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">Tidak ada data untuk grafik</p>
       </div>
     </div>
   </div>

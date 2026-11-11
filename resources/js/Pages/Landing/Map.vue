@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 import LandingLayout from '@/Layouts/LandingLayout.vue'
 import { Button } from '@/Components/ui/button'
@@ -60,6 +60,14 @@ const markerLayer = ref(null)
 const activeBaseLayer = ref(null)
 const baseLayers = {}
 const markerById = ref({})
+let renderDebounceTimer = null
+
+function debouncedRenderMarkers() {
+  if (renderDebounceTimer) clearTimeout(renderDebounceTimer)
+  renderDebounceTimer = setTimeout(() => {
+    renderMarkers()
+  }, 180)
+}
 
 function collectSearchableValue(value) {
   if (value === null || value === undefined) return ''
@@ -179,15 +187,15 @@ watch(
   () => filteredProviders.value.length,
   () => {
     mapPage.value = 1
-    renderMarkers()
+    debouncedRenderMarkers()
   },
 )
 watch([search, filterProvider, filterKelurahan, filterJalan], () => {
   mapPage.value = 1
-  renderMarkers()
+  debouncedRenderMarkers()
 })
 watch(mapPage, () => {
-  renderMarkers()
+  debouncedRenderMarkers()
 })
 watch(isJalanOpen, (open) => {
   if (!open) {
@@ -218,6 +226,10 @@ watch(jalanSearch, (value) => {
 onMounted(() => {
   initMap()
   renderMarkers()
+})
+
+onUnmounted(() => {
+  if (renderDebounceTimer) clearTimeout(renderDebounceTimer)
 })
 
 function initMap() {
@@ -271,20 +283,23 @@ function renderMarkers() {
       title: p.name || 'Provider',
     }).bindPopup(
       `
-        <div style="min-width: 240px">
+        <div style="min-width:240px;font-family:inherit">
           ${photoHtml}
-          <strong>${p.name || 'Provider'}</strong><br/>
-          <small>${p.location || 'Lokasi tidak tersedia'}</small><br/>
-          <small>Kecamatan: ${p.kecamatan || '-'}</small><br/>
-          <small>Kelurahan: ${p.kelurahan || '-'}</small><br/>
-          <small>ODP: ${p.odp || '-'}</small><br/>
-          <small>Utilitas: ${p.utilitas || '-'}</small><br/>
-          <small>Sijali: ${p.sijali || '-'}</small><br/>
-          <small>Tgl Survey: ${p.surveyed_at || '-'}</small><br/>
-          ${p.sijali_link ? `<a href="${p.sijali_link}" target="_blank" style="color:#d97706;font-weight:600;">Buka Sijali</a><br/>` : ''}
-          ${p.maps_url ? `<a href="${p.maps_url}" target="_blank" style="color:#2563eb">Buka di Google Maps</a>` : ''}
+          <strong style="font-size:14px;color:#111827">${p.name || 'Provider'}</strong><br/>
+          <span style="font-size:12px;color:#6b7280">${p.location || 'Lokasi tidak tersedia'}</span><br/>
+          <span style="font-size:12px;color:#374151">Kecamatan: <b>${p.kecamatan || '-'}</b></span><br/>
+          <span style="font-size:12px;color:#374151">Kelurahan: <b>${p.kelurahan || '-'}</b></span><br/>
+          <span style="font-size:12px;color:#374151">ODP: <b>${p.odp || '-'}</b></span><br/>
+          <span style="font-size:12px;color:#374151">Utilitas: <b>${p.utilitas || '-'}</b></span><br/>
+          <span style="font-size:12px;color:#d97706">Sijali: <b>${p.sijali || '-'}</b></span><br/>
+          <span style="font-size:12px;color:#6b7280">Tgl Survey: ${p.surveyed_at || '-'}</span><br/>
+          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+            ${p.sijali_link ? `<a href="${p.sijali_link}" target="_blank" style="display:inline-block;padding:4px 10px;background:#d97706;color:#fff;border-radius:6px;font-size:11px;font-weight:600;text-decoration:none">Buka Sijali</a>` : ''}
+            ${p.maps_url ? `<a href="${p.maps_url}" target="_blank" style="display:inline-block;padding:4px 10px;background:#2563eb;color:#fff;border-radius:6px;font-size:11px;font-weight:600;text-decoration:none">Google Maps</a>` : ''}
+          </div>
         </div>
       `,
+      { maxWidth: 280 }
     )
 
     marker.addTo(markerLayer.value)
@@ -293,7 +308,7 @@ function renderMarkers() {
   })
 
   if (paginatedProviders.value.length && bounds.isValid()) {
-    mapInstance.value.fitBounds(bounds, { padding: [24, 24] })
+    mapInstance.value.fitBounds(bounds, { padding: [40, 40], animate: true, duration: 0.6 })
   }
 }
 
@@ -301,10 +316,10 @@ function handleSelectProvider(p) {
   const lat = p.coordinates?.lat
   const lng = p.coordinates?.lng
   if (!mapInstance.value || lat === undefined || lng === undefined) return
-  mapInstance.value.setView([lat, lng], 25)
+  mapInstance.value.flyTo([lat, lng], 18, { animate: true, duration: 0.8 })
   const marker = markerById.value[p.id]
   if (marker) {
-    marker.openPopup()
+    setTimeout(() => marker.openPopup(), 500)
   }
 }
 </script>
@@ -385,7 +400,15 @@ function handleSelectProvider(p) {
           </Select>
         </div>
 
-        <div v-show="isSearchOpen"
+        <Transition
+          enter-active-class="transition-opacity duration-200 ease-out"
+          enter-from-class="opacity-0"
+          enter-to-class="opacity-100"
+          leave-active-class="transition-opacity duration-150 ease-in"
+          leave-from-class="opacity-100"
+          leave-to-class="opacity-0"
+        >
+        <div v-if="isSearchOpen"
           class="w-full rounded-2xl bg-white/95 p-4 shadow-xl backdrop-blur dark:bg-gray-900/90 sm:w-96 md:w-72 md:max-w-sm">
           <div class="flex items-center gap-2 mb-3">
             <Search class="h-4 w-4 text-emerald-600" />
@@ -439,6 +462,7 @@ function handleSelectProvider(p) {
             </div>
           </div>
         </div>
+        </Transition>
       </div>
     </section>
   </LandingLayout>
@@ -448,5 +472,29 @@ function handleSelectProvider(p) {
 #provider-map :global(.leaflet-container) {
   height: 100%;
   width: 100%;
+}
+
+/* Smooth popup animation */
+#provider-map :global(.leaflet-popup) {
+  animation: popupFadeIn 0.2s ease-out;
+}
+
+@keyframes popupFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Pulse ring around selected marker */
+#provider-map :global(.leaflet-marker-icon) {
+  transition: filter 0.2s ease;
+}
+#provider-map :global(.leaflet-marker-icon:hover) {
+  filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.8));
 }
 </style>

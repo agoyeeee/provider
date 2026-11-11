@@ -26,5 +26,7 @@ Homestead.json
 /storage/pail
 .env.backup
 .env.production
+.env.local
+docker-compose.local.yml
 .phpactor.json
 auth.json
