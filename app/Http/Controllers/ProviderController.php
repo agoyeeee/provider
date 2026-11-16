@@ -149,7 +149,7 @@ class ProviderController extends Controller
                 'y' => $item->y,
                 'foto' => $item->foto,
                 'foto_url' => $item->foto_url,
-                'tgl_survey' => $item->tgl_survey?->format('d-m-Y'),
+                'tgl_survey' => $item->tgl_survey?->format('Y-m-d'),
                 'id_user' => $item->id_user,
                 'user' => $item->user,
                 'created_at' => $item->created_at,
@@ -181,39 +181,32 @@ class ProviderController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'provinsi' => 'required|string|max:255',
-            'kota' => 'required|string|max:255',
             'kecamatan' => 'required|string|max:255',
             'kelurahan' => 'required|string|max:255',
-            'k_ref_wil' => 'nullable|string|max:255',
             'utilitas' => 'nullable|string|max:255',
             'tiang' => 'required|array|min:1',
             'tiang.*.n_provider' => 'required|string|max:255|distinct:ignore_case',
             'tiang.*.odp' => 'nullable|boolean',
             'tiang.*.status_izin' => 'nullable|in:' . implode(',', Tiang::STATUS_IZIN),
             'sijali' => 'nullable|string|max:255',
-            'sijali_link' => 'nullable|url|max:2048',
             'x' => 'nullable|numeric',
             'y' => 'nullable|numeric',
             'foto' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'tgl_survey' => 'nullable|date',
-            'id_user' => 'nullable|exists:users,id',
         ]);
 
         $data = $request->only([
-            'provinsi',
-            'kota',
             'kecamatan',
             'kelurahan',
-            'k_ref_wil',
             'utilitas',
             'sijali',
-            'sijali_link',
             'x',
             'y',
             'tgl_survey',
-            'id_user',
         ]);
+
+        // Wilayah tetap (hanya Surakarta); pemilik data = user yang login
+        $data += ['provinsi' => 'Jawa Tengah', 'kota' => 'Surakarta', 'id_user' => $request->user()?->id];
 
         if ($request->hasFile('foto')) {
             $data['foto'] = $request->file('foto')->store('provider_photos', 'public');
@@ -236,38 +229,28 @@ class ProviderController extends Controller
         $provider = Provider::findOrFail($id);
 
         $request->validate([
-            'provinsi' => 'required|string|max:255',
-            'kota' => 'required|string|max:255',
             'kecamatan' => 'required|string|max:255',
             'kelurahan' => 'required|string|max:255',
-            'k_ref_wil' => 'nullable|string|max:255',
             'utilitas' => 'nullable|string|max:255',
             'tiang' => 'required|array|min:1',
             'tiang.*.n_provider' => 'required|string|max:255|distinct:ignore_case',
             'tiang.*.odp' => 'nullable|boolean',
             'tiang.*.status_izin' => 'nullable|in:' . implode(',', Tiang::STATUS_IZIN),
             'sijali' => 'nullable|string|max:255',
-            'sijali_link' => 'nullable|url|max:2048',
             'x' => 'nullable|numeric',
             'y' => 'nullable|numeric',
             'foto' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'tgl_survey' => 'nullable|date',
-            'id_user' => 'nullable|exists:users,id',
         ]);
 
         $data = $request->only([
-            'provinsi',
-            'kota',
             'kecamatan',
             'kelurahan',
-            'k_ref_wil',
             'utilitas',
             'sijali',
-            'sijali_link',
             'x',
             'y',
             'tgl_survey',
-            'id_user',
         ]);
 
         if ($request->hasFile('foto')) {

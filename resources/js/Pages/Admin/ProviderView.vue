@@ -89,20 +89,15 @@ const importInput = ref(null)
 
 // Form data
 const form = ref({
-    provinsi: '',
-    kota: '',
     kecamatan: '',
     kelurahan: '',
-    k_ref_wil: '',
     utilitas: '',
     tiang: [{ n_provider: '', odp: false, status_izin: '' }],
     sijali: '',
-    sijali_link: '',
     x: '',
     y: '',
     foto: null,
     tgl_survey: '',
-    id_user: 'null',
 })
 
 // Selected items
@@ -122,20 +117,15 @@ const fotoInput = ref(null)
 // Reset form
 const resetForm = () => {
     form.value = {
-        provinsi: '',
-        kota: '',
         kecamatan: '',
         kelurahan: '',
-        k_ref_wil: '',
         utilitas: '',
         tiang: [{ n_provider: '', odp: false, status_izin: '' }],
         sijali: '',
-        sijali_link: '',
         x: '',
         y: '',
         foto: null,
         tgl_survey: '',
-        id_user: 'null',
     }
     if (fotoInput.value) {
         fotoInput.value.value = ''
@@ -152,22 +142,17 @@ const openAddDialog = () => {
 const openEditDialog = (provider) => {
     selectedProvider.value = provider
     form.value = {
-        provinsi: provider.provinsi || '',
-        kota: provider.kota || '',
         kecamatan: provider.kecamatan || '',
         kelurahan: provider.kelurahan || '',
-        k_ref_wil: provider.k_ref_wil || '',
         utilitas: provider.utilitas || '',
         tiang: provider.tiang?.length
             ? provider.tiang.map((t) => ({ n_provider: t.n_provider, odp: !!t.odp, status_izin: t.status_izin || '' }))
             : [{ n_provider: '', odp: false, status_izin: '' }],
         sijali: provider.sijali || '',
-        sijali_link: provider.sijali_link || '',
         x: provider.x || '',
         y: provider.y || '',
         foto: null,
         tgl_survey: provider.tgl_survey || '',
-        id_user: provider.id_user ? String(provider.id_user) : 'null',
     }
     showEditDialog.value = true
 }
@@ -699,12 +684,6 @@ const formatDate = (dateStr) => {
                             <Input id="add-provinsi" v-model="form.provinsi" placeholder="Nama Provinsi" required />
                         </div>
 
-                        <!-- Kota -->
-                        <div class="space-y-2">
-                            <Label for="add-kota">Kota *</Label>
-                            <Input id="add-kota" v-model="form.kota" placeholder="Nama Kota" required />
-                        </div>
-
                         <!-- Kecamatan -->
                         <div class="space-y-2">
                             <Label for="add-kecamatan">Kecamatan *</Label>
@@ -715,12 +694,6 @@ const formatDate = (dateStr) => {
                         <div class="space-y-2">
                             <Label for="add-kelurahan">Kelurahan *</Label>
                             <Input id="add-kelurahan" v-model="form.kelurahan" placeholder="Nama Kelurahan" required />
-                        </div>
-
-                        <!-- K Ref Wil -->
-                        <div class="space-y-2">
-                            <Label for="add-k_ref_wil">K Ref Wil</Label>
-                            <Input id="add-k_ref_wil" v-model="form.k_ref_wil" placeholder="Kode Referensi Wilayah" />
                         </div>
 
                         <!-- Utilitas -->
@@ -738,7 +711,7 @@ const formatDate = (dateStr) => {
                                     <input type="checkbox" v-model="t.odp" /> ODP ada
                                 </label>
                                 <select v-model="t.status_izin"
-                                    class="h-9 rounded-md border border-input bg-transparent px-2 text-sm">
+                                    class="h-9 rounded-md border border-input bg-background text-foreground px-2 text-sm [&>option]:bg-background [&>option]:text-foreground">
                                     <option value="">Izin: -</option>
                                     <option value="berizin">Berizin</option>
                                     <option value="tidak_berizin">Tidak berizin</option>
@@ -753,13 +726,6 @@ const formatDate = (dateStr) => {
                         <div class="space-y-2">
                             <Label for="add-sijali">Sijali</Label>
                             <Input id="add-sijali" v-model="form.sijali" placeholder="Nama jalan Sijali" />
-                        </div>
-
-                        <!-- Sijali Link -->
-                        <div class="space-y-2">
-                            <Label for="add-sijali_link">Link Detail Sijali</Label>
-                            <Input id="add-sijali_link" v-model="form.sijali_link" type="url"
-                                placeholder="https://sijali.surakarta.go.id/..." />
                         </div>
 
                         <!-- X (Longitude) -->
@@ -780,23 +746,6 @@ const formatDate = (dateStr) => {
                             <Input id="add-tgl_survey" v-model="form.tgl_survey" type="date"
                                 class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:[color-scheme:dark]" />
                         </div>
-                        <!-- Empty space for grid alignment -->
-                        <!-- User -->
-                        <div class="space-y-2">
-                            <Label for="add-id_user">User</Label>
-                            <Select v-model="form.id_user">
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Pilih User" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="null">Tidak ada</SelectItem>
-                                    <SelectItem v-for="user in users" :key="user.id" :value="String(user.id)">
-                                        {{ user.name }}
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
                         <!-- Foto -->
                         <div class="space-y-2 md:col-span-2">
                             <Label for="add-foto">Foto</Label>
@@ -824,18 +773,6 @@ const formatDate = (dateStr) => {
                 </DialogHeader>
                 <form @submit.prevent="submitEdit" class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Provinsi -->
-                        <div class="space-y-2">
-                            <Label for="edit-provinsi">Provinsi *</Label>
-                            <Input id="edit-provinsi" v-model="form.provinsi" placeholder="Nama Provinsi" required />
-                        </div>
-
-                        <!-- Kota -->
-                        <div class="space-y-2">
-                            <Label for="edit-kota">Kota *</Label>
-                            <Input id="edit-kota" v-model="form.kota" placeholder="Nama Kota" required />
-                        </div>
-
                         <!-- Kecamatan -->
                         <div class="space-y-2">
                             <Label for="edit-kecamatan">Kecamatan *</Label>
@@ -846,12 +783,6 @@ const formatDate = (dateStr) => {
                         <div class="space-y-2">
                             <Label for="edit-kelurahan">Kelurahan *</Label>
                             <Input id="edit-kelurahan" v-model="form.kelurahan" placeholder="Nama Kelurahan" required />
-                        </div>
-
-                        <!-- K Ref Wil -->
-                        <div class="space-y-2">
-                            <Label for="edit-k_ref_wil">K Ref Wil</Label>
-                            <Input id="edit-k_ref_wil" v-model="form.k_ref_wil" placeholder="Kode Referensi Wilayah" />
                         </div>
 
                         <!-- Utilitas -->
@@ -869,7 +800,7 @@ const formatDate = (dateStr) => {
                                     <input type="checkbox" v-model="t.odp" /> ODP ada
                                 </label>
                                 <select v-model="t.status_izin"
-                                    class="h-9 rounded-md border border-input bg-transparent px-2 text-sm">
+                                    class="h-9 rounded-md border border-input bg-background text-foreground px-2 text-sm [&>option]:bg-background [&>option]:text-foreground">
                                     <option value="">Izin: -</option>
                                     <option value="berizin">Berizin</option>
                                     <option value="tidak_berizin">Tidak berizin</option>
@@ -884,13 +815,6 @@ const formatDate = (dateStr) => {
                         <div class="space-y-2">
                             <Label for="edit-sijali">Sijali</Label>
                             <Input id="edit-sijali" v-model="form.sijali" placeholder="Sijali" />
-                        </div>
-
-                        <!-- Sijali Link -->
-                        <div class="space-y-2">
-                            <Label for="edit-sijali_link">Link Detail Sijali</Label>
-                            <Input id="edit-sijali_link" v-model="form.sijali_link" type="url"
-                                placeholder="https://sijali.surakarta.go.id/..." />
                         </div>
 
                         <!-- X (Longitude) -->
@@ -909,22 +833,6 @@ const formatDate = (dateStr) => {
                         <div class="space-y-2">
                             <Label for="edit-tgl_survey">Tanggal Survey</Label>
                             <Input id="edit-tgl_survey" v-model="form.tgl_survey" type="date" />
-                        </div>
-
-                        <!-- User -->
-                        <div class="space-y-2">
-                            <Label for="edit-id_user">User</Label>
-                            <Select v-model="form.id_user">
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Pilih User" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="null">Tidak ada</SelectItem>
-                                    <SelectItem v-for="user in users" :key="user.id" :value="String(user.id)">
-                                        {{ user.name }}
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
                         </div>
 
                         <!-- Foto -->
