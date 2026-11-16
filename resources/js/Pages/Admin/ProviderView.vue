@@ -85,7 +85,6 @@ const showAddDialog = ref(false)
 const showEditDialog = ref(false)
 const showDeleteDialog = ref(false)
 const showDetailDialog = ref(false)
-const importInput = ref(null)
 
 // Form data
 const form = ref({
@@ -177,33 +176,79 @@ const handleFileChange = (event) => {
     }
 }
 
-// Import providers from XLSX
-const triggerImport = () => {
-    importInput.value?.click()
+// ---- Import Excel: template -> cek file (preview) -> import (commit) ----
+const showImportDialog = ref(false)
+const importFile = ref(null)
+const importPreview = ref(null) // { token, summary, rows, truncated }
+const importLoading = ref(false)
+const importError = ref('')
+const allowOverwrite = ref(false)
+
+const importStatusLabel = {
+    baru: { text: 'Baru', class: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' },
+    timpa: { text: 'Menimpa', class: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
+    duplikat: { text: 'Duplikat', class: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' },
+    error: { text: 'Error', class: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' },
 }
 
-const handleImport = (event) => {
-    const file = event.target.files?.[0]
-    if (!file) return
+// Jumlah baris yang akan disimpan: baru + (menimpa jika dicentang)
+const importWillSave = computed(() => {
+    const s = importPreview.value?.summary
+    return s ? s.baru + (allowOverwrite.value ? s.timpa : 0) : 0
+})
+
+const resetImport = () => {
+    importFile.value = null
+    importPreview.value = null
+    importError.value = ''
+    allowOverwrite.value = false
+}
+
+const openImportDialog = () => {
+    resetImport()
+    showImportDialog.value = true
+}
+
+const handleImportFile = (event) => {
+    importFile.value = event.target.files?.[0] || null
+    importPreview.value = null
+    importError.value = ''
+}
+
+const checkImportFile = async () => {
+    if (!importFile.value) return
+    importLoading.value = true
+    importError.value = ''
+    importPreview.value = null
+    allowOverwrite.value = false
 
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', importFile.value)
+    try {
+        const { data } = await window.axios.post(route('admin.provider.import.preview'), formData)
+        importPreview.value = data
+    } catch (e) {
+        importError.value = e.response?.data?.message || Object.values(e.response?.data?.errors || {}).flat().join(', ') || 'File gagal diperiksa'
+    } finally {
+        importLoading.value = false
+    }
+}
 
-    router.post(route('admin.provider.import'), formData, {
-        forceFormData: true,
-        onSuccess: () => {
-            toast.success('Import selesai')
-        },
-        onError: (errors) => {
-            const messages = Object.values(errors || {}).flat().join(', ')
-            toast.error(messages || 'Import gagal')
-        },
-        onFinish: () => {
-            if (importInput.value) {
-                importInput.value.value = ''
-            }
-        },
-    })
+const commitImport = async () => {
+    importLoading.value = true
+    try {
+        const { data } = await window.axios.post(route('admin.provider.import.commit'), {
+            token: importPreview.value.token,
+            allow_overwrite: allowOverwrite.value,
+        })
+        showImportDialog.value = false
+        toast.success(`Import selesai. Baru: ${data.created}, ditimpa: ${data.updated}, dilewati: ${data.skipped}`)
+        router.reload()
+    } catch (e) {
+        importError.value = e.response?.data?.message || 'Import gagal'
+    } finally {
+        importLoading.value = false
+    }
 }
 
 // Isi FormData dari form; tiang dikirim sebagai tiang[i][field]
@@ -406,7 +451,7 @@ const formatDate = (dateStr) => {
             <div class="flex items-center justify-between w-full">
                 <h1 class="text-lg font-semibold">Data Provider</h1>
                 <div class="flex gap-2">
-                    <Button variant="outline" size="sm" @click="triggerImport">
+                    <Button variant="outline" size="sm" @click="openImportDialog">
                         Import
                     </Button>
                     <Button variant="outline" size="sm" @click="exportData">
@@ -420,7 +465,6 @@ const formatDate = (dateStr) => {
                 </div>
             </div>
         </template>
-        <input ref="importInput" type="file" accept=".xlsx,.xls" class="hidden" @change="handleImport" />
 
         <div class="py-6">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
@@ -850,6 +894,103 @@ const formatDate = (dateStr) => {
                         <Button type="submit">Update</Button>
                     </DialogFooter>
                 </form>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Import Dialog -->
+        <Dialog v-model:open="showImportDialog">
+            <DialogContent class="max-w-3xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                    <DialogTitle>Import Data Provider</DialogTitle>
+                    <DialogDescription>
+                        Unduh template, isi, lalu upload. File diperiksa dulu sebelum disimpan.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div class="space-y-4">
+                    <!-- 1. Template -->
+                    <div class="flex items-center justify-between rounded-lg border p-3">
+                        <div class="text-sm">
+                            <p class="font-medium">1. Unduh template</p>
+                            <p class="text-gray-500">Berisi kolom yang benar dan petunjuk pengisian.</p>
+                        </div>
+                        <Button as="a" :href="route('admin.provider.import.template')" variant="outline" size="sm">
+                            <Download class="w-4 h-4 mr-2" /> Template
+                        </Button>
+                    </div>
+
+                    <!-- 2. Upload -->
+                    <div class="space-y-2 rounded-lg border p-3">
+                        <p class="text-sm font-medium">2. Upload file</p>
+                        <div class="flex items-center gap-2">
+                            <Input type="file" accept=".xlsx,.xls" @change="handleImportFile" />
+                            <Button size="sm" :disabled="!importFile || importLoading" @click="checkImportFile">
+                                {{ importLoading && !importPreview ? 'Memeriksa...' : 'Cek File' }}
+                            </Button>
+                        </div>
+                        <p v-if="importError" class="text-sm text-red-600">{{ importError }}</p>
+                    </div>
+
+                    <!-- 3. Hasil pengecekan -->
+                    <div v-if="importPreview" class="space-y-3 rounded-lg border p-3">
+                        <p class="text-sm font-medium">3. Hasil pengecekan</p>
+                        <div class="flex flex-wrap gap-2 text-xs">
+                            <span class="rounded bg-gray-100 px-2 py-1 dark:bg-gray-800">Total {{ importPreview.summary.total }}</span>
+                            <span v-for="(meta, key) in importStatusLabel" :key="key"
+                                :class="['rounded px-2 py-1', meta.class]">
+                                {{ meta.text }} {{ importPreview.summary[key] }}
+                            </span>
+                        </div>
+
+                        <label v-if="importPreview.summary.timpa > 0" class="flex items-center gap-2 text-sm">
+                            <input type="checkbox" v-model="allowOverwrite" />
+                            Izinkan menimpa {{ importPreview.summary.timpa }} titik yang sudah ada
+                            (tiang lama tidak dihapus, status izin lama dipertahankan)
+                        </label>
+
+                        <div class="max-h-64 overflow-y-auto rounded border">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead class="w-16">Baris</TableHead>
+                                        <TableHead class="w-24">Status</TableHead>
+                                        <TableHead>Titik</TableHead>
+                                        <TableHead>Keterangan</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow v-for="r in importPreview.rows" :key="r.row">
+                                        <TableCell>{{ r.row }}</TableCell>
+                                        <TableCell>
+                                            <span :class="['rounded px-2 py-0.5 text-xs', importStatusLabel[r.status].class]">
+                                                {{ importStatusLabel[r.status].text }}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell class="text-xs">{{ r.label }}</TableCell>
+                                        <TableCell class="text-xs">
+                                            <p v-for="(m, i) in r.messages" :key="i">{{ m }}</p>
+                                            <span v-if="!r.messages.length" class="text-gray-400">-</span>
+                                        </TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                        </div>
+                        <p v-if="importPreview.truncated" class="text-xs text-gray-500">
+                            Hanya {{ importPreview.rows.length }} baris pertama yang ditampilkan (error ditampilkan lebih dulu).
+                        </p>
+                    </div>
+                </div>
+
+                <DialogFooter class="gap-2">
+                    <Button v-if="importPreview && (importPreview.summary.error + importPreview.summary.duplikat) > 0"
+                        as="a" :href="route('admin.provider.import.errors', importPreview.token)" variant="outline">
+                        Unduh baris bermasalah
+                    </Button>
+                    <Button variant="outline" @click="showImportDialog = false">Batal</Button>
+                    <Button :disabled="!importPreview || importWillSave === 0 || importLoading" @click="commitImport">
+                        {{ importLoading && importPreview ? 'Menyimpan...' : `Import ${importWillSave} baris` }}
+                    </Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
 

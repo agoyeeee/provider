@@ -33,7 +33,10 @@ Route::middleware('auth')->group(function () {
         // Provider (Data Provider/Utilitas)
         Route::resource('provider', ProviderController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::get('provider/export', [ProviderController::class, 'export'])->name('provider.export');
-        Route::post('provider/import', [ProviderController::class, 'import'])->name('provider.import');
+        Route::get('provider/import/template', [ProviderController::class, 'importTemplate'])->name('provider.import.template');
+        Route::post('provider/import/preview', [ProviderController::class, 'importPreview'])->name('provider.import.preview');
+        Route::post('provider/import/commit', [ProviderController::class, 'importCommit'])->name('provider.import.commit');
+        Route::get('provider/import/errors/{token}', [ProviderController::class, 'importErrors'])->name('provider.import.errors');
     });
 });
 

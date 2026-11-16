@@ -4,92 +4,22 @@ namespace App\Http\Controllers;
 
 use App\Models\Provider;
 use App\Models\Tiang;
+use App\Services\ProviderImportService;
 use App\Models\User;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use PhpOffice\PhpSpreadsheet\IOFactory;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Inertia\Inertia;
 
 class ProviderController extends Controller
 {
-    /**
-     * Parse coordinate value that may be in Indonesian format (dot as thousands separator).
-     * Examples:
-     * - "1.108.347.869" → 108.347869 (Indonesian format with leading "1.")
-     * - "108.347869" → 108.347869 (standard format)
-     * - "-7.532.665.349" → -7.532665349 (negative with Indonesian format)
-     * - 108.347869 → 108.347869 (already a float)
-     */
-    private function parseCoordinate($value): ?float
+    private const PREVIEW_LIMIT = 500;
+
+    public function __construct(private ProviderImportService $import)
     {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        // If it's already a proper float, return it
-        if (is_float($value) || is_int($value)) {
-            return (float) $value;
-        }
-
-        $value = trim((string) $value);
-
-        // Check if the value uses Indonesian format (multiple dots as thousands separator)
-        // Indonesian format: "1.108.347.869" means "1108347869" which should be "108.347869"
-        $dotCount = substr_count($value, '.');
-
-        if ($dotCount >= 2) {
-            // Handle negative values
-            $isNegative = str_starts_with($value, '-');
-            $cleanValue = ltrim($value, '-');
-
-            // Remove all dots (thousands separators) and treat as integer-like string
-            $withoutDots = str_replace('.', '', $cleanValue);
-
-            // For Indonesian coordinates:
-            // Longitude (x): typically 95-141 degrees (3 digits before decimal)
-            // Latitude (y): typically -11 to 6 degrees (1-2 digits before decimal)
-
-            // Determine where to place the decimal point based on expected coordinate range
-            $length = strlen($withoutDots);
-
-            if ($isNegative) {
-                // Latitude (negative values for Indonesia, typically -1 to -11)
-                // The format "-7.532.665.349" should become "-7.532665349"
-                // First part before first dot is the integer part
-                $parts = explode('.', $cleanValue);
-                $integerPart = $parts[0];
-                $decimalParts = array_slice($parts, 1);
-                $decimalPart = implode('', $decimalParts);
-                $result = (float) ($integerPart . '.' . $decimalPart);
-                return -$result;
-            } else {
-                // Longitude (positive values for Indonesia, typically 95-141)
-                // The format "1.108.347.869" should become "108.347869"
-                // Check if first part is "1" (common prefix issue)
-                $parts = explode('.', $cleanValue);
-
-                if ($parts[0] === '1' && count($parts) >= 2) {
-                    // Skip the leading "1." and reconstruct
-                    // "1.108.347.869" → integer part is "108", decimal is "347869"
-                    $integerPart = $parts[1];
-                    $decimalParts = array_slice($parts, 2);
-                    $decimalPart = implode('', $decimalParts);
-                    return (float) ($integerPart . '.' . $decimalPart);
-                } else {
-                    // Standard case: first part is integer, rest is decimal
-                    $integerPart = $parts[0];
-                    $decimalParts = array_slice($parts, 1);
-                    $decimalPart = implode('', $decimalParts);
-                    return (float) ($integerPart . '.' . $decimalPart);
-                }
-            }
-        }
-
-        // Standard format with single dot as decimal separator
-        return (float) $value;
     }
 
     /**
@@ -315,221 +245,85 @@ class ProviderController extends Controller
     }
 
     /**
-     * Import providers from XLSX.
+     * Download template import (sheet Data + Petunjuk).
      */
-    public function import(Request $request)
+    public function importTemplate()
     {
-        $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls',
+        $book = $this->import->template();
+
+        return response()->streamDownload(function () use ($book) {
+            (new Xlsx($book))->save('php://output');
+        }, 'template_import_provider.xlsx');
+    }
+
+    /**
+     * Langkah 1: baca + periksa file, belum menyimpan data. File ditahan di storage sampai commit.
+     */
+    public function importPreview(Request $request)
+    {
+        $request->validate(['file' => 'required|file|mimes:xlsx,xls|max:20480']);
+
+        $token = (string) Str::uuid();
+        $path = $request->file('file')->storeAs('provider_imports', $token . '.xlsx', 'local');
+
+        try {
+            $analysis = $this->import->analyze(Storage::disk('local')->path($path));
+        } catch (\Throwable $e) {
+            Storage::disk('local')->delete($path);
+            return response()->json(['message' => $e instanceof \InvalidArgumentException ? $e->getMessage() : 'File tidak bisa dibaca: ' . $e->getMessage()], 422);
+        }
+
+        // Kirim baris bermasalah lebih dulu; batasi agar respons tetap ringan
+        $order = ['error' => 0, 'duplikat' => 1, 'timpa' => 2, 'baru' => 3];
+        $rows = collect($analysis['rows'])
+            ->sortBy(fn($r) => $order[$r['status']])
+            ->take(self::PREVIEW_LIMIT)
+            ->map(fn($r) => Arr::only($r, ['row', 'status', 'label', 'messages']))
+            ->values();
+
+        return response()->json([
+            'token' => $token,
+            'summary' => $analysis['summary'],
+            'rows' => $rows,
+            'truncated' => $analysis['summary']['total'] > $rows->count(),
+        ]);
+    }
+
+    /**
+     * Langkah 2: simpan baris valid. Baris yang akan menimpa hanya disimpan jika allow_overwrite.
+     */
+    public function importCommit(Request $request)
+    {
+        $data = $request->validate([
+            'token' => 'required|uuid',
+            'allow_overwrite' => 'boolean',
         ]);
 
-        $file = $request->file('file');
-        $path = $file->getRealPath();
-
+        $path = Storage::disk('local')->path('provider_imports/' . $data['token'] . '.xlsx');
         if (!file_exists($path)) {
-            return back()->with('error', 'File tidak ditemukan.');
+            return response()->json(['message' => 'Sesi import kedaluwarsa. Upload ulang file.'], 422);
         }
 
-        $spreadsheet = IOFactory::load($path);
-        $sheet = $spreadsheet->getActiveSheet()->toArray(null, true, true, true);
+        $result = $this->import->commit($path, (bool) ($data['allow_overwrite'] ?? false), $request->user()?->id);
+        Storage::disk('local')->delete('provider_imports/' . $data['token'] . '.xlsx');
 
-        if (count($sheet) < 1) {
-            return back()->with('error', 'Sheet kosong.');
-        }
+        return response()->json($result);
+    }
 
-        $headerRow = array_shift($sheet);
-        $normalize = static function ($value) {
-            return strtolower(trim(str_replace([' ', '.', '-', '/'], '_', (string) $value)));
-        };
+    /**
+     * Unduh baris error/duplikat dari file yang sudah dipreview.
+     */
+    public function importErrors(string $token)
+    {
+        abort_unless(Str::isUuid($token), 404);
+        $path = Storage::disk('local')->path('provider_imports/' . $token . '.xlsx');
+        abort_unless(file_exists($path), 404);
 
-        $headerMap = array_map($normalize, array_values($headerRow));
+        $book = $this->import->errorReport($this->import->analyze($path));
 
-        // Handle merged "Koordinat" header without sublabels
-        if (in_array('koordinat', $headerMap, true)) {
-            foreach ($headerMap as $idx => $val) {
-                if ($val === 'koordinat') {
-                    // force next two columns to x/y if not explicitly labeled
-                    $headerMap[$idx] = 'x';
-                    $headerMap[$idx + 1] = $headerMap[$idx + 1] ?? 'y';
-                    if (empty($headerMap[$idx + 1])) {
-                        $headerMap[$idx + 1] = 'y';
-                    }
-                }
-            }
-        }
-
-        // fallback header order if normalization fails
-        if (!array_filter($headerMap, fn($h) => !empty($h))) {
-            $headerMap = [
-                'provinsi',
-                'kota',
-                'kecamatan',
-                'kelurahan',
-                'k_ref_wil',
-                'utilitas',
-                'n_provider',
-                'odp',
-                'sijali',
-                'sijali_link',
-                'x',
-                'y',
-                'tgl_survey',
-            ];
-        }
-
-        $fieldMap = [
-            'provinsi' => 'provinsi',
-            'kota' => 'kota',
-            'kecamatan' => 'kecamatan',
-            'kelurahan' => 'kelurahan',
-            'kode_referensi_wilayah' => 'k_ref_wil',
-            'k_ref_wil' => 'k_ref_wil',
-            'utilitas' => 'utilitas',
-            'nama_provider' => 'n_provider',
-            'n_provider' => 'n_provider',
-            'odp' => 'odp',
-            'nama_sijali' => 'sijali',
-            'nama_sijali_21' => 'sijali',
-            'sijali_21' => 'sijali',
-            'sijali' => 'sijali',
-            'sijali_link' => 'sijali_link',
-            'Sijali Link' => 'sijali_link',
-            'link_sijali' => 'sijali_link',
-            'url_sijali' => 'sijali_link',
-            'url_detail_sijali' => 'sijali_link',
-            'x' => 'x',
-            'lon' => 'x',
-            'longitude' => 'x',
-            'y' => 'y',
-            'lat' => 'y',
-            'latitude' => 'y',
-            'koordinat_x' => 'x',
-            'koordinat_y' => 'y',
-            'tgl_survey' => 'tgl_survey',
-            'tanggal_survey' => 'tgl_survey',
-            'kode_foto' => 'foto',
-            'foto' => 'foto',
-            'foto_url' => 'foto_url',
-            'jml_tiang' => 'jml_tiang',
-        ];
-
-        $processed = $created = $updated = 0;
-        $failed = [];
-        $userId = $request->user()?->id;
-        $rowNum = 1; // header = baris 1
-
-        foreach ($sheet as $row) {
-            $rowNum++;
-            if (!is_array($row) || !array_filter($row)) {
-                continue;
-            }
-
-            $data = [];
-            $values = array_values($row);
-            foreach ($values as $index => $value) {
-                $normalized = $headerMap[$index] ?? null;
-                $field = $fieldMap[$normalized] ?? null;
-                if (!$field) {
-                    continue;
-                }
-                $data[$field] = is_string($value) ? trim($value) : $value;
-            }
-
-            // Tiang: satu provider = satu tiang. ODP dicocokkan per nama provider.
-            $names = collect(explode(',', (string) ($data['n_provider'] ?? '')))
-                ->map(fn($n) => trim($n))
-                ->filter()
-                ->unique(fn($n) => mb_strtolower($n))
-                ->values();
-            $odpMap = $this->parseOdp($data['odp'] ?? null);
-
-            if ($names->isEmpty()) {
-                $failed[] = "Baris {$rowNum}: N_PROVIDER kosong";
-                continue;
-            }
-            if (!empty($data['odp'])) {
-                $unmatched = $names->first(fn($n) => !array_key_exists(mb_strtolower($n), $odpMap));
-                if ($unmatched !== null) {
-                    $failed[] = "Baris {$rowNum}: ODP untuk '{$unmatched}' tidak ditemukan";
-                    continue;
-                }
-            }
-            if (isset($data['jml_tiang']) && $data['jml_tiang'] !== '' && (int) $data['jml_tiang'] !== $names->count()) {
-                $failed[] = "Baris {$rowNum}: JML_TIANG {$data['jml_tiang']} != jumlah provider {$names->count()}";
-                continue;
-            }
-
-            $payload = [
-                'provinsi' => $data['provinsi'] ?? null,
-                'kota' => $data['kota'] ?? null,
-                'kecamatan' => $data['kecamatan'] ?? null,
-                'kelurahan' => $data['kelurahan'] ?? null,
-                'k_ref_wil' => $data['k_ref_wil'] ?? null,
-                'utilitas' => $data['utilitas'] ?? null,
-                'sijali' => $data['sijali'] ?? null,
-                'sijali_link' => $data['sijali_link'] ?? null,
-                'x' => $this->parseCoordinate($data['x'] ?? null),
-                'y' => $this->parseCoordinate($data['y'] ?? null),
-                'foto' => $data['foto'] ?? null,
-                'tgl_survey' => null,
-                'id_user' => $userId,
-            ];
-
-            if (!empty($data['tgl_survey'])) {
-                try {
-                    if (is_numeric($data['tgl_survey'])) {
-                        $payload['tgl_survey'] = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($data['tgl_survey'])->format('Y-m-d');
-                    } else {
-                        $payload['tgl_survey'] = Carbon::parse($data['tgl_survey'])->format('Y-m-d');
-                    }
-                } catch (\Exception $e) {
-                    $payload['tgl_survey'] = null;
-                }
-            }
-
-            // remove empty strings
-            $payload = array_map(fn($v) => $v === '' ? null : $v, $payload);
-
-            DB::transaction(function () use ($payload, $names, $odpMap, &$created, &$updated) {
-                // Titik yang sama = koordinat yang sama
-                $existing = ($payload['x'] !== null && $payload['y'] !== null)
-                    ? Provider::where('x', number_format($payload['x'], 10, '.', ''))
-                        ->where('y', number_format($payload['y'], 10, '.', ''))
-                        ->first()
-                    : null;
-
-                if ($existing) {
-                    // merge without wiping existing values when the new cell is empty/null
-                    $existing->update(array_filter($payload, fn($v) => $v !== null));
-                    $provider = $existing;
-                    $updated++;
-                } else {
-                    $provider = Provider::create($payload);
-                    $created++;
-                }
-
-                foreach ($names as $name) {
-                    // updateOrCreate: status_izin yang sudah diisi manual tidak ikut tertimpa
-                    $provider->tiang()->updateOrCreate(
-                        ['n_provider' => $name],
-                        ['odp' => $odpMap[mb_strtolower($name)] ?? false]
-                    );
-                }
-            });
-
-            $processed++;
-        }
-
-        if ($failed) {
-            Log::warning('Import provider: baris gagal', $failed);
-        }
-
-        $message = "Import selesai. Diproses: {$processed}, ditambahkan: {$created}, diperbarui: {$updated}, gagal: " . count($failed);
-        if ($failed) {
-            $message .= '. ' . implode('; ', array_slice($failed, 0, 5)) . (count($failed) > 5 ? '; ...' : '');
-        }
-
-        return redirect()->route('admin.provider.index')->with('success', $message);
+        return response()->streamDownload(function () use ($book) {
+            (new Xlsx($book))->save('php://output');
+        }, 'import_provider_perlu_diperbaiki.xlsx');
     }
 
     /**
@@ -546,19 +340,5 @@ class ProviderController extends Controller
                 ['odp' => filter_var($row['odp'] ?? false, FILTER_VALIDATE_BOOLEAN), 'status_izin' => $row['status_izin'] ?: null]
             );
         }
-    }
-
-    /**
-     * Parse "Link Net Ada, Telkom Tidak Ada" menjadi ['link net' => true, 'telkom' => false].
-     */
-    private function parseOdp(?string $odp): array
-    {
-        $map = [];
-        foreach (explode(',', (string) $odp) as $part) {
-            if (preg_match('/^(.+?)\s+(tidak\s+ada|ada)$/iu', trim($part), $m)) {
-                $map[mb_strtolower(trim($m[1]))] = !str_starts_with(mb_strtolower($m[2]), 'tidak');
-            }
-        }
-        return $map;
     }
 }
