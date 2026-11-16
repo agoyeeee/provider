@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Provider;
+use App\Models\Tiang;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Inertia\Inertia;
@@ -94,7 +97,7 @@ class ProviderController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Provider::with('user');
+        $query = Provider::with(['user', 'tiang']);
 
         // Filter by kecamatan/kelurahan
         if ($request->filled('kecamatan')) {
@@ -111,7 +114,7 @@ class ProviderController extends Controller
 
         // Filter by provider name
         if ($request->filled('n_provider')) {
-            $query->where('n_provider', 'like', '%' . $request->n_provider . '%');
+            $query->whereHas('tiang', fn($q) => $q->where('n_provider', $request->n_provider));
         }
 
         // Search functionality
@@ -123,8 +126,7 @@ class ProviderController extends Controller
                     ->orWhere('kecamatan', 'like', '%' . $search . '%')
                     ->orWhere('kelurahan', 'like', '%' . $search . '%')
                     ->orWhere('sijali', 'like', '%' . $search . '%')
-                    ->orWhere('n_provider', 'like', '%' . $search . '%')
-                    ->orWhere('odp', 'like', '%' . $search . '%');
+                    ->orWhereHas('tiang', fn($t) => $t->where('n_provider', 'like', '%' . $search . '%'));
             });
         }
 
@@ -137,8 +139,10 @@ class ProviderController extends Controller
                 'kelurahan' => $item->kelurahan,
                 'k_ref_wil' => $item->k_ref_wil,
                 'utilitas' => $item->utilitas,
-                'n_provider' => $item->n_provider,
-                'odp' => $item->odp,
+                'n_provider' => $item->n_provider_label,
+                'odp' => $item->odp_label,
+                'tiang' => $item->tiangList(),
+                'jml_tiang' => $item->tiang->count(),
                 'sijali' => $item->sijali,
                 'sijali_link' => $item->sijali_link,
                 'x' => $item->x,
@@ -160,7 +164,7 @@ class ProviderController extends Controller
             'kecamatan' => Provider::distinct()->pluck('kecamatan')->filter()->values(),
             'kelurahan' => Provider::distinct()->pluck('kelurahan')->filter()->values(),
             'sijali' => Provider::distinct()->whereNotNull('sijali')->pluck('sijali')->filter()->values(),
-            'n_provider' => Provider::distinct()->pluck('n_provider')->filter()->values(),
+            'n_provider' => Tiang::distinct()->orderBy('n_provider')->pluck('n_provider')->values(),
         ];
 
         return Inertia::render('Admin/ProviderView', [
@@ -183,8 +187,10 @@ class ProviderController extends Controller
             'kelurahan' => 'required|string|max:255',
             'k_ref_wil' => 'nullable|string|max:255',
             'utilitas' => 'nullable|string|max:255',
-            'n_provider' => 'required|string|max:255',
-            'odp' => 'nullable|string|max:255',
+            'tiang' => 'required|array|min:1',
+            'tiang.*.n_provider' => 'required|string|max:255|distinct:ignore_case',
+            'tiang.*.odp' => 'nullable|boolean',
+            'tiang.*.status_izin' => 'nullable|in:' . implode(',', Tiang::STATUS_IZIN),
             'sijali' => 'nullable|string|max:255',
             'sijali_link' => 'nullable|url|max:2048',
             'x' => 'nullable|numeric',
@@ -201,8 +207,6 @@ class ProviderController extends Controller
             'kelurahan',
             'k_ref_wil',
             'utilitas',
-            'n_provider',
-            'odp',
             'sijali',
             'sijali_link',
             'x',
@@ -215,7 +219,10 @@ class ProviderController extends Controller
             $data['foto'] = $request->file('foto')->store('provider_photos', 'public');
         }
 
-        Provider::create($data);
+        DB::transaction(function () use ($data, $request) {
+            $provider = Provider::create($data);
+            $this->syncTiang($provider, $request->input('tiang', []));
+        });
 
         return redirect()->route('admin.provider.index')
             ->with('success', 'Data Provider berhasil ditambahkan');
@@ -235,8 +242,10 @@ class ProviderController extends Controller
             'kelurahan' => 'required|string|max:255',
             'k_ref_wil' => 'nullable|string|max:255',
             'utilitas' => 'nullable|string|max:255',
-            'n_provider' => 'required|string|max:255',
-            'odp' => 'nullable|string|max:255',
+            'tiang' => 'required|array|min:1',
+            'tiang.*.n_provider' => 'required|string|max:255|distinct:ignore_case',
+            'tiang.*.odp' => 'nullable|boolean',
+            'tiang.*.status_izin' => 'nullable|in:' . implode(',', Tiang::STATUS_IZIN),
             'sijali' => 'nullable|string|max:255',
             'sijali_link' => 'nullable|url|max:2048',
             'x' => 'nullable|numeric',
@@ -253,8 +262,6 @@ class ProviderController extends Controller
             'kelurahan',
             'k_ref_wil',
             'utilitas',
-            'n_provider',
-            'odp',
             'sijali',
             'sijali_link',
             'x',
@@ -271,7 +278,10 @@ class ProviderController extends Controller
             $data['foto'] = $request->file('foto')->store('provider_photos', 'public');
         }
 
-        $provider->update($data);
+        DB::transaction(function () use ($provider, $data, $request) {
+            $provider->update($data);
+            $this->syncTiang($provider, $request->input('tiang', []));
+        });
 
         return redirect()->route('admin.provider.index')
             ->with('success', 'Data Provider berhasil diupdate');
@@ -300,7 +310,7 @@ class ProviderController extends Controller
      */
     public function export(Request $request)
     {
-        $query = Provider::with('user');
+        $query = Provider::with(['user', 'tiang']);
 
         // Apply same filters as index
         if ($request->filled('provinsi')) {
@@ -313,7 +323,7 @@ class ProviderController extends Controller
             $query->where('kecamatan', $request->kecamatan);
         }
         if ($request->filled('n_provider')) {
-            $query->where('n_provider', 'like', '%' . $request->n_provider . '%');
+            $query->whereHas('tiang', fn($q) => $q->where('n_provider', $request->n_provider));
         }
 
         $providers = $query->orderBy('created_at', 'desc')->get();
@@ -417,12 +427,16 @@ class ProviderController extends Controller
             'kode_foto' => 'foto',
             'foto' => 'foto',
             'foto_url' => 'foto_url',
+            'jml_tiang' => 'jml_tiang',
         ];
 
         $processed = $created = $updated = 0;
+        $failed = [];
         $userId = $request->user()?->id;
+        $rowNum = 1; // header = baris 1
 
         foreach ($sheet as $row) {
+            $rowNum++;
             if (!is_array($row) || !array_filter($row)) {
                 continue;
             }
@@ -438,6 +452,30 @@ class ProviderController extends Controller
                 $data[$field] = is_string($value) ? trim($value) : $value;
             }
 
+            // Tiang: satu provider = satu tiang. ODP dicocokkan per nama provider.
+            $names = collect(explode(',', (string) ($data['n_provider'] ?? '')))
+                ->map(fn($n) => trim($n))
+                ->filter()
+                ->unique(fn($n) => mb_strtolower($n))
+                ->values();
+            $odpMap = $this->parseOdp($data['odp'] ?? null);
+
+            if ($names->isEmpty()) {
+                $failed[] = "Baris {$rowNum}: N_PROVIDER kosong";
+                continue;
+            }
+            if (!empty($data['odp'])) {
+                $unmatched = $names->first(fn($n) => !array_key_exists(mb_strtolower($n), $odpMap));
+                if ($unmatched !== null) {
+                    $failed[] = "Baris {$rowNum}: ODP untuk '{$unmatched}' tidak ditemukan";
+                    continue;
+                }
+            }
+            if (isset($data['jml_tiang']) && $data['jml_tiang'] !== '' && (int) $data['jml_tiang'] !== $names->count()) {
+                $failed[] = "Baris {$rowNum}: JML_TIANG {$data['jml_tiang']} != jumlah provider {$names->count()}";
+                continue;
+            }
+
             $payload = [
                 'provinsi' => $data['provinsi'] ?? null,
                 'kota' => $data['kota'] ?? null,
@@ -445,14 +483,11 @@ class ProviderController extends Controller
                 'kelurahan' => $data['kelurahan'] ?? null,
                 'k_ref_wil' => $data['k_ref_wil'] ?? null,
                 'utilitas' => $data['utilitas'] ?? null,
-                'n_provider' => $data['n_provider'] ?? null,
-                'odp' => $data['odp'] ?? null,
                 'sijali' => $data['sijali'] ?? null,
                 'sijali_link' => $data['sijali_link'] ?? null,
                 'x' => $this->parseCoordinate($data['x'] ?? null),
                 'y' => $this->parseCoordinate($data['y'] ?? null),
-                'foto' => $data['foto'] ?? ($data['kode_foto'] ?? null),
-                'foto_url' => $data['foto_url'] ?? null,
+                'foto' => $data['foto'] ?? null,
                 'tgl_survey' => null,
                 'id_user' => $userId,
             ];
@@ -470,49 +505,77 @@ class ProviderController extends Controller
             }
 
             // remove empty strings
-            $payload = array_map(function ($v) {
-                return $v === '' ? null : $v;
-            }, $payload);
+            $payload = array_map(fn($v) => $v === '' ? null : $v, $payload);
 
-            // determine if there is any meaningful data besides id_user
-            $dataForCheck = $payload;
-            unset($dataForCheck['id_user']);
-            $hasNewData = array_filter($dataForCheck, fn($v) => $v !== null && $v !== '') !== [];
+            DB::transaction(function () use ($payload, $names, $odpMap, &$created, &$updated) {
+                // Titik yang sama = koordinat yang sama
+                $existing = ($payload['x'] !== null && $payload['y'] !== null)
+                    ? Provider::where('x', number_format($payload['x'], 10, '.', ''))
+                        ->where('y', number_format($payload['y'], 10, '.', ''))
+                        ->first()
+                    : null;
 
-            // Check for existing record by ODP (if available)
-            if (!empty($payload['odp'])) {
-                $existing = Provider::where('odp', $payload['odp'])->first();
-                if (!$hasNewData && !$existing) {
-                    // skip empty rows
-                    continue;
-                }
-                if (!$hasNewData && $existing) {
-                    // nothing to update
-                    continue;
-                }
                 if ($existing) {
                     // merge without wiping existing values when the new cell is empty/null
-                    $merged = $existing->only(array_keys($payload));
-                    foreach ($payload as $key => $value) {
-                        if ($value !== null && $value !== '') {
-                            $merged[$key] = $value;
-                        }
-                    }
-                    $existing->update($merged);
+                    $existing->update(array_filter($payload, fn($v) => $v !== null));
+                    $provider = $existing;
                     $updated++;
                 } else {
-                    Provider::create($payload);
+                    $provider = Provider::create($payload);
                     $created++;
                 }
-            } else {
-                Provider::create($payload);
-                $created++;
-            }
+
+                foreach ($names as $name) {
+                    // updateOrCreate: status_izin yang sudah diisi manual tidak ikut tertimpa
+                    $provider->tiang()->updateOrCreate(
+                        ['n_provider' => $name],
+                        ['odp' => $odpMap[mb_strtolower($name)] ?? false]
+                    );
+                }
+            });
 
             $processed++;
         }
 
-        return redirect()->route('admin.provider.index')
-            ->with('success', "Import selesai. Diproses: {$processed}, ditambahkan: {$created}, diperbarui: {$updated}");
+        if ($failed) {
+            Log::warning('Import provider: baris gagal', $failed);
+        }
+
+        $message = "Import selesai. Diproses: {$processed}, ditambahkan: {$created}, diperbarui: {$updated}, gagal: " . count($failed);
+        if ($failed) {
+            $message .= '. ' . implode('; ', array_slice($failed, 0, 5)) . (count($failed) > 5 ? '; ...' : '');
+        }
+
+        return redirect()->route('admin.provider.index')->with('success', $message);
+    }
+
+    /**
+     * Ganti daftar tiang titik dengan input form. status_izin lama dipertahankan per provider.
+     */
+    private function syncTiang(Provider $provider, array $rows): void
+    {
+        $names = collect($rows)->pluck('n_provider')->map(fn($n) => trim($n));
+        $provider->tiang()->whereNotIn('n_provider', $names)->delete();
+
+        foreach ($rows as $row) {
+            $provider->tiang()->updateOrCreate(
+                ['n_provider' => trim($row['n_provider'])],
+                ['odp' => filter_var($row['odp'] ?? false, FILTER_VALIDATE_BOOLEAN), 'status_izin' => $row['status_izin'] ?: null]
+            );
+        }
+    }
+
+    /**
+     * Parse "Link Net Ada, Telkom Tidak Ada" menjadi ['link net' => true, 'telkom' => false].
+     */
+    private function parseOdp(?string $odp): array
+    {
+        $map = [];
+        foreach (explode(',', (string) $odp) as $part) {
+            if (preg_match('/^(.+?)\s+(tidak\s+ada|ada)$/iu', trim($part), $m)) {
+                $map[mb_strtolower(trim($m[1]))] = !str_starts_with(mb_strtolower($m[2]), 'tidak');
+            }
+        }
+        return $map;
     }
 }

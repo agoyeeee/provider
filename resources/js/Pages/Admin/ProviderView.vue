@@ -95,8 +95,7 @@ const form = ref({
     kelurahan: '',
     k_ref_wil: '',
     utilitas: '',
-    n_provider: '',
-    odp: '',
+    tiang: [{ n_provider: '', odp: false, status_izin: '' }],
     sijali: '',
     sijali_link: '',
     x: '',
@@ -129,8 +128,7 @@ const resetForm = () => {
         kelurahan: '',
         k_ref_wil: '',
         utilitas: '',
-        n_provider: '',
-        odp: '',
+        tiang: [{ n_provider: '', odp: false, status_izin: '' }],
         sijali: '',
         sijali_link: '',
         x: '',
@@ -160,8 +158,9 @@ const openEditDialog = (provider) => {
         kelurahan: provider.kelurahan || '',
         k_ref_wil: provider.k_ref_wil || '',
         utilitas: provider.utilitas || '',
-        n_provider: provider.n_provider || '',
-        odp: provider.odp || '',
+        tiang: provider.tiang?.length
+            ? provider.tiang.map((t) => ({ n_provider: t.n_provider, odp: !!t.odp, status_izin: t.status_izin || '' }))
+            : [{ n_provider: '', odp: false, status_izin: '' }],
         sijali: provider.sijali || '',
         sijali_link: provider.sijali_link || '',
         x: provider.x || '',
@@ -222,18 +221,31 @@ const handleImport = (event) => {
     })
 }
 
-// Submit add form
-const submitAdd = () => {
-    const formData = new FormData()
+// Isi FormData dari form; tiang dikirim sebagai tiang[i][field]
+const appendFormData = (formData) => {
     Object.keys(form.value).forEach((key) => {
         const value = form.value[key]
-        // Convert 'null' string to actual null, skip empty strings and null
-        if (value === 'null') {
+        if (key === 'tiang') {
+            value.forEach((t, i) => {
+                formData.append(`tiang[${i}][n_provider]`, t.n_provider)
+                formData.append(`tiang[${i}][odp]`, t.odp ? '1' : '0')
+                formData.append(`tiang[${i}][status_izin]`, t.status_izin || '')
+            })
+        } else if (value === 'null') {
             formData.append(key, '')
         } else if (value !== null && value !== '') {
             formData.append(key, value)
         }
     })
+}
+
+const addTiang = () => form.value.tiang.push({ n_provider: '', odp: false, status_izin: '' })
+const removeTiang = (i) => form.value.tiang.splice(i, 1)
+
+// Submit add form
+const submitAdd = () => {
+    const formData = new FormData()
+    appendFormData(formData)
 
     router.post(route('admin.provider.store'), formData, {
         forceFormData: true,
@@ -252,15 +264,7 @@ const submitAdd = () => {
 const submitEdit = () => {
     const formData = new FormData()
     formData.append('_method', 'PUT')
-    Object.keys(form.value).forEach((key) => {
-        const value = form.value[key]
-        // Convert 'null' string to actual null, skip empty strings and null
-        if (value === 'null') {
-            formData.append(key, '')
-        } else if (value !== null && value !== '') {
-            formData.append(key, value)
-        }
-    })
+    appendFormData(formData)
 
     router.post(route('admin.provider.update', selectedProvider.value.id), formData, {
         forceFormData: true,
@@ -374,7 +378,7 @@ const stats = computed(() => ({
     total: props.providers.length,
     totalKecamatan: [...new Set(props.providers.map((p) => p.kecamatan).filter(Boolean))].length,
     totalKelurahan: [...new Set(props.providers.map((p) => p.kelurahan).filter(Boolean))].length,
-    totalProvider: [...new Set(props.providers.map((p) => p.n_provider).filter(Boolean))].length,
+    totalProvider: [...new Set(props.providers.flatMap((p) => (p.tiang || []).map((t) => t.n_provider)))].length,
 }))
 
 // Pagination
@@ -725,16 +729,24 @@ const formatDate = (dateStr) => {
                             <Input id="add-utilitas" v-model="form.utilitas" placeholder="Jenis Utilitas" />
                         </div>
 
-                        <!-- N Provider -->
-                        <div class="space-y-2">
-                            <Label for="add-n_provider">Nama Provider *</Label>
-                            <Input id="add-n_provider" v-model="form.n_provider" placeholder="Nama Provider" required />
-                        </div>
-
-                        <!-- ODP -->
-                        <div class="space-y-2">
-                            <Label for="add-odp">ODP</Label>
-                            <Input id="add-odp" v-model="form.odp" placeholder="Optical Distribution Point" />
+                        <!-- Tiang (satu tiang = satu provider) -->
+                        <div class="space-y-2 md:col-span-2">
+                            <Label>Tiang / Provider *</Label>
+                            <div v-for="(t, i) in form.tiang" :key="i" class="flex flex-wrap items-center gap-2">
+                                <Input v-model="t.n_provider" placeholder="Nama Provider" class="flex-1 min-w-[140px]" required />
+                                <label class="flex items-center gap-1 text-sm">
+                                    <input type="checkbox" v-model="t.odp" /> ODP ada
+                                </label>
+                                <select v-model="t.status_izin"
+                                    class="h-9 rounded-md border border-input bg-transparent px-2 text-sm">
+                                    <option value="">Izin: -</option>
+                                    <option value="berizin">Berizin</option>
+                                    <option value="tidak_berizin">Tidak berizin</option>
+                                </select>
+                                <Button type="button" variant="outline" size="sm" :disabled="form.tiang.length === 1"
+                                    @click="removeTiang(i)">Hapus</Button>
+                            </div>
+                            <Button type="button" variant="outline" size="sm" @click="addTiang">+ Tambah tiang</Button>
                         </div>
 
                         <!-- Sijali -->
@@ -848,17 +860,24 @@ const formatDate = (dateStr) => {
                             <Input id="edit-utilitas" v-model="form.utilitas" placeholder="Jenis Utilitas" />
                         </div>
 
-                        <!-- N Provider -->
-                        <div class="space-y-2">
-                            <Label for="edit-n_provider">Nama Provider *</Label>
-                            <Input id="edit-n_provider" v-model="form.n_provider" placeholder="Nama Provider"
-                                required />
-                        </div>
-
-                        <!-- ODP -->
-                        <div class="space-y-2">
-                            <Label for="edit-odp">ODP</Label>
-                            <Input id="edit-odp" v-model="form.odp" placeholder="Optical Distribution Point" />
+                        <!-- Tiang (satu tiang = satu provider) -->
+                        <div class="space-y-2 md:col-span-2">
+                            <Label>Tiang / Provider *</Label>
+                            <div v-for="(t, i) in form.tiang" :key="i" class="flex flex-wrap items-center gap-2">
+                                <Input v-model="t.n_provider" placeholder="Nama Provider" class="flex-1 min-w-[140px]" required />
+                                <label class="flex items-center gap-1 text-sm">
+                                    <input type="checkbox" v-model="t.odp" /> ODP ada
+                                </label>
+                                <select v-model="t.status_izin"
+                                    class="h-9 rounded-md border border-input bg-transparent px-2 text-sm">
+                                    <option value="">Izin: -</option>
+                                    <option value="berizin">Berizin</option>
+                                    <option value="tidak_berizin">Tidak berizin</option>
+                                </select>
+                                <Button type="button" variant="outline" size="sm" :disabled="form.tiang.length === 1"
+                                    @click="removeTiang(i)">Hapus</Button>
+                            </div>
+                            <Button type="button" variant="outline" size="sm" @click="addTiang">+ Tambah tiang</Button>
                         </div>
 
                         <!-- Sijali -->

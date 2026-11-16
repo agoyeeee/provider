@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Provider;
+use App\Models\Tiang;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -44,13 +45,9 @@ class LandingController extends Controller
 
         $stats = [
             'totalRecords' => Provider::count(),
-            'uniqueProviders' => Provider::whereNotNull('n_provider')
-                ->pluck('n_provider')
-                ->flatMap(function ($value) {
-                    return collect(explode(',', $value))
-                        ->map(fn($name) => $this->normalizeProviderName($name))
-                        ->filter(fn($name) => $name !== '');
-                })
+            'uniqueProviders' => Tiang::pluck('n_provider')
+                ->map(fn($name) => $this->normalizeProviderName($name))
+                ->filter(fn($name) => $name !== '')
                 ->unique()
                 ->count(),
             'coverageDistricts' => Provider::whereNotNull('kecamatan')
@@ -69,20 +66,20 @@ class LandingController extends Controller
             'latestSurvey' => optional($latestSurvey?->tgl_survey)->format('Y-m-d'),
         ];
 
-        $featuredProviders = Provider::query()
+        $featuredProviders = Provider::with('tiang')
             ->latest('tgl_survey')
             ->limit(6)
             ->get()
             ->map(function (Provider $provider) {
                 return [
                     'id' => $provider->id,
-                    'name' => $provider->n_provider,
+                    'name' => $provider->n_provider_label,
                     'utilitas' => $provider->utilitas,
                     'kota' => $provider->kota,
                     'provinsi' => $provider->provinsi,
                     'kecamatan' => $provider->kecamatan,
                     'kelurahan' => $provider->kelurahan,
-                    'odp' => $provider->odp,
+                    'odp' => $provider->odp_label,
                     'sijali' => $provider->sijali,
                     'surveyed_at' => $provider->tgl_survey?->format('Y-m-d'),
                     'coordinate' => [
@@ -117,13 +114,13 @@ class LandingController extends Controller
                 'total' => $row->total,
             ]);
 
-        $mapProviders = Provider::query()
+        $mapProviders = Provider::with('tiang')
             ->orderByDesc('tgl_survey')
             ->get()
             ->map(function (Provider $provider) {
                 return [
                     'id' => $provider->id,
-                    'name' => $provider->n_provider,
+                    'name' => $provider->n_provider_label,
                     'location' => trim(
                         collect([$provider->kelurahan, $provider->kecamatan, $provider->kota, $provider->provinsi])
                             ->filter()
@@ -131,7 +128,9 @@ class LandingController extends Controller
                     ),
                     'kecamatan' => $provider->kecamatan,
                     'kelurahan' => $provider->kelurahan,
-                    'odp' => $provider->odp,
+                    'odp' => $provider->odp_label,
+                    'tiang' => $provider->tiangList(),
+                    'jml_tiang' => $provider->tiang->count(),
                     'sijali' => $provider->sijali,
                     'utilitas' => $provider->utilitas,
                     'surveyed_at' => $provider->tgl_survey?->format('Y-m-d'),
@@ -163,13 +162,13 @@ class LandingController extends Controller
      */
     public function map()
     {
-        $mapProviders = Provider::query()
+        $mapProviders = Provider::with('tiang')
             ->orderByDesc('tgl_survey')
             ->get()
             ->map(function (Provider $provider) {
                 return [
                     'id' => $provider->id,
-                    'name' => $provider->n_provider,
+                    'name' => $provider->n_provider_label,
                     'location' => trim(
                         collect([$provider->kelurahan, $provider->kecamatan, $provider->kota, $provider->provinsi])
                             ->filter()
@@ -178,7 +177,9 @@ class LandingController extends Controller
                     'kecamatan' => $provider->kecamatan,
                     'kelurahan' => $provider->kelurahan,
                     'utilitas' => $provider->utilitas,
-                    'odp' => $provider->odp,
+                    'odp' => $provider->odp_label,
+                    'tiang' => $provider->tiangList(),
+                    'jml_tiang' => $provider->tiang->count(),
                     'sijali' => $provider->sijali,
                     'sijali_link' => $provider->sijali_link,
                     'surveyed_at' => $provider->tgl_survey?->format('Y-m-d'),

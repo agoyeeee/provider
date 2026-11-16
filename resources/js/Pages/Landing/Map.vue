@@ -289,7 +289,7 @@ function renderMarkers() {
           <span style="font-size:12px;color:#6b7280">${p.location || 'Lokasi tidak tersedia'}</span><br/>
           <span style="font-size:12px;color:#374151">Kecamatan: <b>${p.kecamatan || '-'}</b></span><br/>
           <span style="font-size:12px;color:#374151">Kelurahan: <b>${p.kelurahan || '-'}</b></span><br/>
-          <span style="font-size:12px;color:#374151">ODP: <b>${p.odp || '-'}</b></span><br/>
+          ${(p.tiang || []).map((t) => `<span style="font-size:12px;color:#374151">${t.n_provider}: ODP <b>${t.odp ? 'Ada' : 'Tidak Ada'}</b> · Izin <b>${{ berizin: 'Berizin', tidak_berizin: 'Tidak berizin' }[t.status_izin] || '-'}</b></span><br/>`).join('')}
           <span style="font-size:12px;color:#374151">Utilitas: <b>${p.utilitas || '-'}</b></span><br/>
           <span style="font-size:12px;color:#d97706">Sijali: <b>${p.sijali || '-'}</b></span><br/>
           <span style="font-size:12px;color:#6b7280">Tgl Survey: ${p.surveyed_at || '-'}</span><br/>

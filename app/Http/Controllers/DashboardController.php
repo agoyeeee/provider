@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Provider;
+use App\Models\Tiang;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -14,7 +15,7 @@ class DashboardController extends Controller
         return [
             'total_users' => User::count(),
             'total_provider' => Provider::count(),
-            'total_provider_unique' => Provider::distinct('n_provider')->count('n_provider'),
+            'total_provider_unique' => Tiang::distinct()->count('n_provider'),
             'total_kecamatan' => Provider::distinct('kecamatan')->count('kecamatan'),
             'total_kelurahan' => Provider::distinct('kelurahan')->count('kelurahan'),
         ];
@@ -25,10 +26,14 @@ class DashboardController extends Controller
         $stats = self::statsSummary();
 
         // Get recent providers
-        $recent_providers = Provider::with('user')
+        $recent_providers = Provider::with(['user', 'tiang'])
             ->latest()
             ->limit(5)
-            ->get();
+            ->get()
+            ->map(fn($p) => array_merge($p->toArray(), [
+                'n_provider' => $p->n_provider_label,
+                'odp' => $p->odp_label,
+            ]));
 
         // Provider by kecamatan
         $provider_by_kecamatan = Provider::selectRaw('kecamatan, count(*) as count')
