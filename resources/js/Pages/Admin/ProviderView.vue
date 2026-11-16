@@ -678,12 +678,6 @@ const formatDate = (dateStr) => {
                 </DialogHeader>
                 <form @submit.prevent="submitAdd" class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Provinsi -->
-                        <div class="space-y-2">
-                            <Label for="add-provinsi">Provinsi *</Label>
-                            <Input id="add-provinsi" v-model="form.provinsi" placeholder="Nama Provinsi" required />
-                        </div>
-
                         <!-- Kecamatan -->
                         <div class="space-y-2">
                             <Label for="add-kecamatan">Kecamatan *</Label>
