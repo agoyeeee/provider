@@ -1,10 +1,10 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 import LandingLayout from '@/Layouts/LandingLayout.vue'
 import { Button } from '@/Components/ui/button'
 import { Badge } from '@/Components/ui/badge'
-import { BarChart } from '@/Components/ui/chart-bar'
+import Distribution3DChart from '@/Components/Landing/Distribution3DChart.vue'
 import {
   ArrowRight,
   ArrowUpRight,
@@ -477,15 +477,8 @@ const formatDate = (value) =>
   value ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(new Date(value)) : 'Belum ada'
 
 // ------------------------------------------------------------
-// Chart Switcher (Kecamatan vs Kelurahan)
+// 3D Distribution Data & Area Drill-down
 // ------------------------------------------------------------
-const activeChartTab = ref('kecamatan')
-
-const axisLabelStyle = {
-  '--vis-axis-tick-label-font-size': '11px',
-  '--vis-axis-tick-label-weight': '600',
-}
-
 const buildAreaDistribution = (providers, key) => {
   const counts = new Map()
   providers.forEach((provider) => {
@@ -504,29 +497,37 @@ const buildAreaDistribution = (providers, key) => {
   )
 }
 
-const barCategoryKey = 'Jumlah'
 const kecamatanDistribution = computed(() => buildAreaDistribution(props.mapProviders, 'kecamatan'))
 const kelurahanDistribution = computed(() => buildAreaDistribution(props.mapProviders, 'kelurahan'))
 
-const activeDistribution = computed(() =>
-  activeChartTab.value === 'kecamatan'
-    ? kecamatanDistribution.value
-    : kelurahanDistribution.value,
-)
-
-const activeBarData = computed(() =>
-  activeDistribution.value.slice(0, 14).map((item) => ({
-    name: item.name,
-    [barCategoryKey]: item.total,
-  })),
-)
-
-const topThreeAreas = computed(() => activeDistribution.value.slice(0, 3))
-
-const formatBarLabel = (data) => (value) => {
-  const label = data?.[value]?.name ?? ''
-  if (!label) return ''
-  return label.length > 11 ? `${label.slice(0, 11)}…` : label
+const handleSelectArea = async ({ type, name }) => {
+  searchQuery.value = ''
+  if (type === 'kecamatan') {
+    const match = kecamatanOptions.value.find(
+      (opt) => normalizeArea(opt.value) === normalizeArea(name),
+    )
+    selectedKecamatan.value = match ? match.value : name
+    await nextTick()
+    selectedKelurahan.value = ''
+  } else if (type === 'kelurahan') {
+    const sample = props.mapProviders.find(
+      (p) => normalizeArea(p.kelurahan) === normalizeArea(name) && p.kecamatan,
+    )
+    if (sample?.kecamatan) {
+      const kecMatch = kecamatanOptions.value.find(
+        (opt) => normalizeArea(opt.value) === normalizeArea(sample.kecamatan),
+      )
+      selectedKecamatan.value = kecMatch ? kecMatch.value : sample.kecamatan
+      await nextTick()
+      const kelMatch = kelurahanOptions.value.find(
+        (opt) => normalizeArea(opt.value) === normalizeArea(name),
+      )
+      selectedKelurahan.value = kelMatch ? kelMatch.value : name
+    } else {
+      searchQuery.value = name
+    }
+  }
+  document.getElementById('data')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 // ------------------------------------------------------------
@@ -934,98 +935,14 @@ const filteredPermitRequests = computed(() => {
           </div>
         </div>
 
-        <!-- Interactive Chart Card -->
-        <div
-          v-reveal="{ direction: 'up', delay: 160 }"
-          class="mt-8 rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/80 sm:p-8"
-        >
-          <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p class="text-xs font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-                Visualisasi Sebaran
-              </p>
-              <h3 class="mt-1 text-xl font-bold text-slate-900 dark:text-white">
-                Distribusi Titik per
-                {{ activeChartTab === 'kecamatan' ? 'Kecamatan' : 'Kelurahan' }}
-              </h3>
-            </div>
-
-            <!-- Interactive Segmented Tab Switcher -->
-            <div
-              class="inline-flex w-fit items-center rounded-full border border-slate-200/80 bg-slate-100/80 p-1 dark:border-slate-800 dark:bg-slate-950/80"
-            >
-              <button
-                type="button"
-                @click="activeChartTab = 'kecamatan'"
-                class="rounded-full px-4 py-1.5 text-xs font-semibold transition-all duration-200"
-                :class="
-                  activeChartTab === 'kecamatan'
-                    ? 'bg-white text-slate-900 shadow-sm dark:bg-emerald-500 dark:text-slate-950'
-                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
-                "
-              >
-                Kecamatan ({{ formatNumber(kecamatanDistribution.length) }})
-              </button>
-              <button
-                type="button"
-                @click="activeChartTab = 'kelurahan'"
-                class="rounded-full px-4 py-1.5 text-xs font-semibold transition-all duration-200"
-                :class="
-                  activeChartTab === 'kelurahan'
-                    ? 'bg-white text-slate-900 shadow-sm dark:bg-emerald-500 dark:text-slate-950'
-                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
-                "
-              >
-                Kelurahan ({{ formatNumber(kelurahanDistribution.length) }})
-              </button>
-            </div>
-          </div>
-
-          <!-- Top 3 Area Pills -->
-          <div v-if="topThreeAreas.length" class="mt-5 flex flex-wrap items-center gap-2">
-            <span class="text-xs font-medium text-slate-500 dark:text-slate-400 mr-1">
-              Tertinggi:
-            </span>
-            <span
-              v-for="(area, i) in topThreeAreas"
-              :key="area.name"
-              class="inline-flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700 dark:border-slate-800 dark:bg-slate-800/70 dark:text-slate-200"
-            >
-              <span class="h-1.5 w-1.5 rounded-full" :class="i === 0 ? 'bg-emerald-500' : i === 1 ? 'bg-teal-500' : 'bg-sky-500'"></span>
-              {{ area.name }}
-              <strong class="font-bold">{{ formatNumber(area.total) }}</strong>
-            </span>
-          </div>
-
-          <!-- Chart Display -->
-          <div class="mt-6">
-            <transition name="fade-slide" mode="out-in">
-              <div :key="activeChartTab">
-                <div v-if="activeBarData.length">
-                  <BarChart
-                    class="h-[260px]"
-                    :style="axisLabelStyle"
-                    :data="activeBarData"
-                    :categories="[barCategoryKey]"
-                    index="name"
-                    :show-legend="false"
-                    :show-grid-line="false"
-                    :show-y-axis="false"
-                    :rounded-corners="6"
-                    :x-formatter="formatBarLabel(activeBarData)"
-                    :y-formatter="(value) => formatNumber(value)"
-                    :colors="[activeChartTab === 'kecamatan' ? '#10b981' : '#0ea5e9']"
-                  />
-                </div>
-                <div
-                  v-else
-                  class="flex h-44 items-center justify-center rounded-2xl border border-dashed border-slate-200 text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400"
-                >
-                  Belum ada data sebaran untuk kategori ini.
-                </div>
-              </div>
-            </transition>
-          </div>
+        <!-- Interactive 3D Distribution Chart -->
+        <div v-reveal="{ direction: 'up', delay: 160 }" class="mt-8">
+          <Distribution3DChart
+            :kecamatan-data="kecamatanDistribution"
+            :kelurahan-data="kelurahanDistribution"
+            :total-records="Number(stats?.totalRecords ?? 0)"
+            @select-area="handleSelectArea"
+          />
         </div>
       </div>
     </section>
