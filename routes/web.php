@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 // Landing page
 Route::get('/', [LandingController::class, 'index'])->name('landing');
 Route::get('/peta', [LandingController::class, 'map'])->name('landing.map');
+Route::get('/peta/titik', [LandingController::class, 'mapPoints'])->name('landing.map.points');
 
 // Authenticated routes
 Route::middleware('auth')->group(function () {

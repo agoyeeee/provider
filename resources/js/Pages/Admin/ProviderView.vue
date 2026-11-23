@@ -362,45 +362,7 @@ watch(searchQuery, (newValue) => {
 
 // Export data
 const exportData = () => {
-    // Simple CSV export
-    const headers = [
-        'Provinsi',
-        'Kota',
-        'Kecamatan',
-        'Kelurahan',
-        'K Ref Wil',
-        'Utilitas',
-        'N Provider',
-        'ODP',
-        'Sijali',
-        'Sijali Link',
-        'X',
-        'Y',
-        'Tgl Survey',
-    ]
-    const rows = props.providers.map((p) => [
-        p.provinsi || '',
-        p.kota || '',
-        p.kecamatan || '',
-        p.kelurahan || '',
-        p.k_ref_wil || '',
-        p.utilitas || '',
-        p.n_provider || '',
-        p.odp || '',
-        p.sijali || '',
-        p.sijali_link || '',
-        p.x || '',
-        p.y || '',
-        p.tgl_survey || '',
-    ])
-
-    const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n')
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `providers_${new Date().toISOString().slice(0, 10)}.csv`
-    link.click()
+    window.location.href = route('provider.export')
 }
 
 // Stats

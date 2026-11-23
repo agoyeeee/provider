@@ -222,6 +222,37 @@ class ProviderImportService
     }
 
     /**
+     * Export semua titik dengan header sama seperti template, siap diedit lalu diimport ulang.
+     * X/Y jangan diubah: keduanya kunci untuk menimpa data.
+     */
+    public function export(iterable $providers): Spreadsheet
+    {
+        $book = new Spreadsheet();
+        $sheet = $book->getActiveSheet()->setTitle('Data');
+        $sheet->fromArray(self::HEADERS, null, 'A1');
+        $sheet->getStyle('A1:P1')->getFont()->setBold(true);
+
+        $r = 2;
+        foreach ($providers as $p) {
+            $sheet->fromArray([
+                $p->provinsi, $p->kota, $p->kecamatan, $p->kelurahan, $p->k_ref_wil, $p->utilitas,
+                $p->n_provider_label, $p->odp_label,
+                $p->tiang->filter(fn($t) => $t->status_izin)
+                    ->map(fn($t) => $t->n_provider . ($t->status_izin === 'berizin' ? ' Berizin' : ' Tidak Berizin'))
+                    ->implode(', '),
+                $p->sijali, $p->sijali_link,
+                // string agar tidak dibulatkan Excel; parseCoordinate membaca angka desimal biasa
+                (string) $p->x, (string) $p->y,
+                $p->foto, $p->tgl_survey?->format('Y-m-d'), $p->tiang->count(),
+            ], null, 'A' . $r++);
+        }
+        foreach (range('A', 'P') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+        return $book;
+    }
+
+    /**
      * Spreadsheet berisi baris bermasalah (status error / duplikat) untuk diperbaiki lalu diupload ulang.
      */
     public function errorReport(array $analysis): Spreadsheet

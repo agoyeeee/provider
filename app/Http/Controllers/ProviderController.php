@@ -221,27 +221,13 @@ class ProviderController extends Controller
     /**
      * Export data to Excel/CSV
      */
-    public function export(Request $request)
+    public function export()
     {
-        $query = Provider::with(['user', 'tiang']);
+        $book = $this->import->export(Provider::with('tiang')->orderBy('id')->get());
 
-        // Apply same filters as index
-        if ($request->filled('provinsi')) {
-            $query->where('provinsi', $request->provinsi);
-        }
-        if ($request->filled('kota')) {
-            $query->where('kota', $request->kota);
-        }
-        if ($request->filled('kecamatan')) {
-            $query->where('kecamatan', $request->kecamatan);
-        }
-        if ($request->filled('n_provider')) {
-            $query->whereHas('tiang', fn($q) => $q->where('n_provider', $request->n_provider));
-        }
-
-        $providers = $query->orderBy('created_at', 'desc')->get();
-
-        return response()->json($providers);
+        return response()->streamDownload(function () use ($book) {
+            (new Xlsx($book))->save('php://output');
+        }, 'data_provider_' . now()->format('Ymd_His') . '.xlsx');
     }
 
     /**
