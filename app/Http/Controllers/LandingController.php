@@ -146,8 +146,34 @@ class LandingController extends Controller
                 ];
             });
 
+        $permitCounts = Tiang::query()
+            ->select('status_izin', DB::raw('COUNT(*) as total'))
+            ->groupBy('status_izin')
+            ->pluck('total', 'status_izin');
+
+        $permits = [
+            'counts' => [
+                'all' => $permitCounts->sum(),
+                'berizin' => (int) ($permitCounts['berizin'] ?? 0),
+                'tidak_berizin' => (int) ($permitCounts['tidak_berizin'] ?? 0),
+            ],
+            'list' => Tiang::with('provider:id,kecamatan,kelurahan,tgl_survey')
+                ->latest('id')
+                ->limit(12)
+                ->get()
+                ->map(fn(Tiang $t) => [
+                    'id' => $t->id,
+                    'provider' => $t->n_provider,
+                    'kecamatan' => $t->provider?->kecamatan,
+                    'kelurahan' => $t->provider?->kelurahan,
+                    'status' => $t->status_izin,
+                    'submitted_at' => $t->provider?->tgl_survey?->format('Y-m-d'),
+                ]),
+        ];
+
         return Inertia::render('Landing/Home', [
             'stats' => $stats,
+            'permits' => $permits,
             'featuredProviders' => $featuredProviders,
             'coverage' => $coverage,
             'timeline' => $timeline,

@@ -43,6 +43,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  permits: {
+    type: Object,
+    default: () => ({ counts: {}, list: [] }),
+  },
   canLogin: {
     type: Boolean,
     default: true,
@@ -535,52 +539,10 @@ const handleSelectArea = async ({ type, name }) => {
 // ------------------------------------------------------------
 const activePermitTab = ref('all')
 
-const permitRequests = [
-  {
-    id: 1,
-    provider: 'Link Net',
-    kecamatan: 'Banjarsari',
-    kelurahan: 'Keprabon',
-    status: 'legal',
-    submitted_at: '2025-01-10',
-  },
-  {
-    id: 2,
-    provider: 'Biznet',
-    kecamatan: 'Banjarsari',
-    kelurahan: 'Keprabon',
-    status: 'legal',
-    submitted_at: '2025-01-12',
-  },
-  {
-    id: 3,
-    provider: 'MyRepublic',
-    kecamatan: 'Laweyan',
-    kelurahan: 'Sondakan',
-    status: 'ilegal',
-    submitted_at: '2025-01-15',
-  },
-  {
-    id: 4,
-    provider: 'PowerTel',
-    kecamatan: 'Jebres',
-    kelurahan: 'Pucangsawit',
-    status: 'legal',
-    submitted_at: '2025-01-18',
-  },
-  {
-    id: 5,
-    provider: 'IP-1',
-    kecamatan: 'Pasar Kliwon',
-    kelurahan: 'Kauman',
-    status: 'ilegal',
-    submitted_at: '2025-01-20',
-  },
-]
-
 const filteredPermitRequests = computed(() => {
-  if (activePermitTab.value === 'all') return permitRequests
-  return permitRequests.filter((request) => request.status === activePermitTab.value)
+  const list = props.permits?.list ?? []
+  if (activePermitTab.value === 'all') return list
+  return list.filter((request) => request.status === activePermitTab.value)
 })
 </script>
 
@@ -1242,31 +1204,31 @@ const filteredPermitRequests = computed(() => {
                   : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
               "
             >
-              Semua ({{ permitRequests.length }})
+              Semua ({{ permits?.counts?.all ?? 0 }})
             </button>
             <button
               type="button"
-              @click="activePermitTab = 'legal'"
+              @click="activePermitTab = 'berizin'"
               class="rounded-full px-3.5 py-1.5 text-xs font-semibold transition"
               :class="
-                activePermitTab === 'legal'
+                activePermitTab === 'berizin'
                   ? 'bg-white text-slate-900 shadow-sm dark:bg-emerald-500 dark:text-slate-950'
                   : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
               "
             >
-              Legal
+              Berizin ({{ permits?.counts?.berizin ?? 0 }})
             </button>
             <button
               type="button"
-              @click="activePermitTab = 'ilegal'"
+              @click="activePermitTab = 'tidak_berizin'"
               class="rounded-full px-3.5 py-1.5 text-xs font-semibold transition"
               :class="
-                activePermitTab === 'ilegal'
+                activePermitTab === 'tidak_berizin'
                   ? 'bg-white text-slate-900 shadow-sm dark:bg-emerald-500 dark:text-slate-950'
                   : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
               "
             >
-              Peninjauan
+              Tidak Berizin ({{ permits?.counts?.tidak_berizin ?? 0 }})
             </button>
           </div>
         </div>
@@ -1293,14 +1255,14 @@ const filteredPermitRequests = computed(() => {
               <span
                 class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold"
                 :class="
-                  request.status === 'legal'
+                  request.status === 'berizin'
                     ? 'bg-emerald-500/10 text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-300'
                     : 'bg-amber-500/10 text-amber-700 ring-1 ring-amber-500/20 dark:text-amber-300'
                 "
               >
-                <CheckCircle2 v-if="request.status === 'legal'" class="h-3 w-3" />
+                <CheckCircle2 v-if="request.status === 'berizin'" class="h-3 w-3" />
                 <ShieldAlert v-else class="h-3 w-3" />
-                {{ request.status === 'legal' ? 'Legal' : 'Dalam Peninjauan' }}
+                {{ request.status === 'berizin' ? 'Berizin' : 'Tidak Berizin' }}
               </span>
             </div>
 
