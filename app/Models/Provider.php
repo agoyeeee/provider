@@ -43,6 +43,34 @@ class Provider extends Model
         return $this->belongsTo(User::class, 'id_user', 'id');
     }
 
+    public function tiang()
+    {
+        return $this->hasMany(Tiang::class);
+    }
+
+    /** Nama provider semua tiang, mis. "Link Net, Telkom". Wajib eager load 'tiang'. */
+    public function getNProviderLabelAttribute(): string
+    {
+        return $this->tiang->pluck('n_provider')->implode(', ');
+    }
+
+    /** Status ODP per tiang, mis. "Link Net Ada, Telkom Tidak Ada". Wajib eager load 'tiang'. */
+    public function getOdpLabelAttribute(): string
+    {
+        return $this->tiang
+            ->map(fn($t) => $t->n_provider . ($t->odp ? ' Ada' : ' Tidak Ada'))
+            ->implode(', ');
+    }
+
+    /** Tiang sebagai array untuk frontend. Wajib eager load 'tiang'. */
+    public function tiangList(): array
+    {
+        return $this->tiang
+            ->map(fn($t) => $t->only(['id', 'n_provider', 'odp', 'status_izin']))
+            ->values()
+            ->all();
+    }
+
     /**
      * Scope to filter by provinsi
      */
@@ -72,7 +100,7 @@ class Provider extends Model
      */
     public function scopeByProvider($query, string $provider)
     {
-        return $query->where('n_provider', $provider);
+        return $query->whereHas('tiang', fn($q) => $q->where('n_provider', $provider));
     }
 
     /**

@@ -85,25 +85,18 @@ const showAddDialog = ref(false)
 const showEditDialog = ref(false)
 const showDeleteDialog = ref(false)
 const showDetailDialog = ref(false)
-const importInput = ref(null)
 
 // Form data
 const form = ref({
-    provinsi: '',
-    kota: '',
     kecamatan: '',
     kelurahan: '',
-    k_ref_wil: '',
     utilitas: '',
-    n_provider: '',
-    odp: '',
+    tiang: [{ n_provider: '', odp: false, status_izin: '' }],
     sijali: '',
-    sijali_link: '',
     x: '',
     y: '',
     foto: null,
     tgl_survey: '',
-    id_user: 'null',
 })
 
 // Selected items
@@ -123,21 +116,15 @@ const fotoInput = ref(null)
 // Reset form
 const resetForm = () => {
     form.value = {
-        provinsi: '',
-        kota: '',
         kecamatan: '',
         kelurahan: '',
-        k_ref_wil: '',
         utilitas: '',
-        n_provider: '',
-        odp: '',
+        tiang: [{ n_provider: '', odp: false, status_izin: '' }],
         sijali: '',
-        sijali_link: '',
         x: '',
         y: '',
         foto: null,
         tgl_survey: '',
-        id_user: 'null',
     }
     if (fotoInput.value) {
         fotoInput.value.value = ''
@@ -154,21 +141,17 @@ const openAddDialog = () => {
 const openEditDialog = (provider) => {
     selectedProvider.value = provider
     form.value = {
-        provinsi: provider.provinsi || '',
-        kota: provider.kota || '',
         kecamatan: provider.kecamatan || '',
         kelurahan: provider.kelurahan || '',
-        k_ref_wil: provider.k_ref_wil || '',
         utilitas: provider.utilitas || '',
-        n_provider: provider.n_provider || '',
-        odp: provider.odp || '',
+        tiang: provider.tiang?.length
+            ? provider.tiang.map((t) => ({ n_provider: t.n_provider, odp: !!t.odp, status_izin: t.status_izin || '' }))
+            : [{ n_provider: '', odp: false, status_izin: '' }],
         sijali: provider.sijali || '',
-        sijali_link: provider.sijali_link || '',
         x: provider.x || '',
         y: provider.y || '',
         foto: null,
         tgl_survey: provider.tgl_survey || '',
-        id_user: provider.id_user ? String(provider.id_user) : 'null',
     }
     showEditDialog.value = true
 }
@@ -193,47 +176,106 @@ const handleFileChange = (event) => {
     }
 }
 
-// Import providers from XLSX
-const triggerImport = () => {
-    importInput.value?.click()
+// ---- Import Excel: template -> cek file (preview) -> import (commit) ----
+const showImportDialog = ref(false)
+const importFile = ref(null)
+const importPreview = ref(null) // { token, summary, rows, truncated }
+const importLoading = ref(false)
+const importError = ref('')
+const allowOverwrite = ref(false)
+
+const importStatusLabel = {
+    baru: { text: 'Baru', class: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' },
+    timpa: { text: 'Menimpa', class: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
+    duplikat: { text: 'Duplikat', class: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' },
+    error: { text: 'Error', class: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' },
 }
 
-const handleImport = (event) => {
-    const file = event.target.files?.[0]
-    if (!file) return
+// Jumlah baris yang akan disimpan: baru + (menimpa jika dicentang)
+const importWillSave = computed(() => {
+    const s = importPreview.value?.summary
+    return s ? s.baru + (allowOverwrite.value ? s.timpa : 0) : 0
+})
 
-    const formData = new FormData()
-    formData.append('file', file)
-
-    router.post(route('admin.provider.import'), formData, {
-        forceFormData: true,
-        onSuccess: () => {
-            toast.success('Import selesai')
-        },
-        onError: (errors) => {
-            const messages = Object.values(errors || {}).flat().join(', ')
-            toast.error(messages || 'Import gagal')
-        },
-        onFinish: () => {
-            if (importInput.value) {
-                importInput.value.value = ''
-            }
-        },
-    })
+const resetImport = () => {
+    importFile.value = null
+    importPreview.value = null
+    importError.value = ''
+    allowOverwrite.value = false
 }
 
-// Submit add form
-const submitAdd = () => {
+const openImportDialog = () => {
+    resetImport()
+    showImportDialog.value = true
+}
+
+const handleImportFile = (event) => {
+    importFile.value = event.target.files?.[0] || null
+    importPreview.value = null
+    importError.value = ''
+}
+
+const checkImportFile = async () => {
+    if (!importFile.value) return
+    importLoading.value = true
+    importError.value = ''
+    importPreview.value = null
+    allowOverwrite.value = false
+
     const formData = new FormData()
+    formData.append('file', importFile.value)
+    try {
+        const { data } = await window.axios.post(route('admin.provider.import.preview'), formData)
+        importPreview.value = data
+    } catch (e) {
+        importError.value = e.response?.data?.message || Object.values(e.response?.data?.errors || {}).flat().join(', ') || 'File gagal diperiksa'
+    } finally {
+        importLoading.value = false
+    }
+}
+
+const commitImport = async () => {
+    importLoading.value = true
+    try {
+        const { data } = await window.axios.post(route('admin.provider.import.commit'), {
+            token: importPreview.value.token,
+            allow_overwrite: allowOverwrite.value,
+        })
+        showImportDialog.value = false
+        toast.success(`Import selesai. Baru: ${data.created}, ditimpa: ${data.updated}, dilewati: ${data.skipped}`)
+        router.reload()
+    } catch (e) {
+        importError.value = e.response?.data?.message || 'Import gagal'
+    } finally {
+        importLoading.value = false
+    }
+}
+
+// Isi FormData dari form; tiang dikirim sebagai tiang[i][field]
+const appendFormData = (formData) => {
     Object.keys(form.value).forEach((key) => {
         const value = form.value[key]
-        // Convert 'null' string to actual null, skip empty strings and null
-        if (value === 'null') {
+        if (key === 'tiang') {
+            value.forEach((t, i) => {
+                formData.append(`tiang[${i}][n_provider]`, t.n_provider)
+                formData.append(`tiang[${i}][odp]`, t.odp ? '1' : '0')
+                formData.append(`tiang[${i}][status_izin]`, t.status_izin || '')
+            })
+        } else if (value === 'null') {
             formData.append(key, '')
         } else if (value !== null && value !== '') {
             formData.append(key, value)
         }
     })
+}
+
+const addTiang = () => form.value.tiang.push({ n_provider: '', odp: false, status_izin: '' })
+const removeTiang = (i) => form.value.tiang.splice(i, 1)
+
+// Submit add form
+const submitAdd = () => {
+    const formData = new FormData()
+    appendFormData(formData)
 
     router.post(route('admin.provider.store'), formData, {
         forceFormData: true,
@@ -252,15 +294,7 @@ const submitAdd = () => {
 const submitEdit = () => {
     const formData = new FormData()
     formData.append('_method', 'PUT')
-    Object.keys(form.value).forEach((key) => {
-        const value = form.value[key]
-        // Convert 'null' string to actual null, skip empty strings and null
-        if (value === 'null') {
-            formData.append(key, '')
-        } else if (value !== null && value !== '') {
-            formData.append(key, value)
-        }
-    })
+    appendFormData(formData)
 
     router.post(route('admin.provider.update', selectedProvider.value.id), formData, {
         forceFormData: true,
@@ -328,45 +362,7 @@ watch(searchQuery, (newValue) => {
 
 // Export data
 const exportData = () => {
-    // Simple CSV export
-    const headers = [
-        'Provinsi',
-        'Kota',
-        'Kecamatan',
-        'Kelurahan',
-        'K Ref Wil',
-        'Utilitas',
-        'N Provider',
-        'ODP',
-        'Sijali',
-        'Sijali Link',
-        'X',
-        'Y',
-        'Tgl Survey',
-    ]
-    const rows = props.providers.map((p) => [
-        p.provinsi || '',
-        p.kota || '',
-        p.kecamatan || '',
-        p.kelurahan || '',
-        p.k_ref_wil || '',
-        p.utilitas || '',
-        p.n_provider || '',
-        p.odp || '',
-        p.sijali || '',
-        p.sijali_link || '',
-        p.x || '',
-        p.y || '',
-        p.tgl_survey || '',
-    ])
-
-    const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n')
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `providers_${new Date().toISOString().slice(0, 10)}.csv`
-    link.click()
+    window.location.href = route('provider.export')
 }
 
 // Stats
@@ -374,7 +370,7 @@ const stats = computed(() => ({
     total: props.providers.length,
     totalKecamatan: [...new Set(props.providers.map((p) => p.kecamatan).filter(Boolean))].length,
     totalKelurahan: [...new Set(props.providers.map((p) => p.kelurahan).filter(Boolean))].length,
-    totalProvider: [...new Set(props.providers.map((p) => p.n_provider).filter(Boolean))].length,
+    totalProvider: [...new Set(props.providers.flatMap((p) => (p.tiang || []).map((t) => t.n_provider)))].length,
 }))
 
 // Pagination
@@ -417,7 +413,7 @@ const formatDate = (dateStr) => {
             <div class="flex items-center justify-between w-full">
                 <h1 class="text-lg font-semibold">Data Provider</h1>
                 <div class="flex gap-2">
-                    <Button variant="outline" size="sm" @click="triggerImport">
+                    <Button variant="outline" size="sm" @click="openImportDialog">
                         Import
                     </Button>
                     <Button variant="outline" size="sm" @click="exportData">
@@ -431,7 +427,6 @@ const formatDate = (dateStr) => {
                 </div>
             </div>
         </template>
-        <input ref="importInput" type="file" accept=".xlsx,.xls" class="hidden" @change="handleImport" />
 
         <div class="py-6">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
@@ -689,18 +684,6 @@ const formatDate = (dateStr) => {
                 </DialogHeader>
                 <form @submit.prevent="submitAdd" class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Provinsi -->
-                        <div class="space-y-2">
-                            <Label for="add-provinsi">Provinsi *</Label>
-                            <Input id="add-provinsi" v-model="form.provinsi" placeholder="Nama Provinsi" required />
-                        </div>
-
-                        <!-- Kota -->
-                        <div class="space-y-2">
-                            <Label for="add-kota">Kota *</Label>
-                            <Input id="add-kota" v-model="form.kota" placeholder="Nama Kota" required />
-                        </div>
-
                         <!-- Kecamatan -->
                         <div class="space-y-2">
                             <Label for="add-kecamatan">Kecamatan *</Label>
@@ -713,41 +696,36 @@ const formatDate = (dateStr) => {
                             <Input id="add-kelurahan" v-model="form.kelurahan" placeholder="Nama Kelurahan" required />
                         </div>
 
-                        <!-- K Ref Wil -->
-                        <div class="space-y-2">
-                            <Label for="add-k_ref_wil">K Ref Wil</Label>
-                            <Input id="add-k_ref_wil" v-model="form.k_ref_wil" placeholder="Kode Referensi Wilayah" />
-                        </div>
-
                         <!-- Utilitas -->
                         <div class="space-y-2">
                             <Label for="add-utilitas">Utilitas</Label>
                             <Input id="add-utilitas" v-model="form.utilitas" placeholder="Jenis Utilitas" />
                         </div>
 
-                        <!-- N Provider -->
-                        <div class="space-y-2">
-                            <Label for="add-n_provider">Nama Provider *</Label>
-                            <Input id="add-n_provider" v-model="form.n_provider" placeholder="Nama Provider" required />
-                        </div>
-
-                        <!-- ODP -->
-                        <div class="space-y-2">
-                            <Label for="add-odp">ODP</Label>
-                            <Input id="add-odp" v-model="form.odp" placeholder="Optical Distribution Point" />
+                        <!-- Tiang (satu tiang = satu provider) -->
+                        <div class="space-y-2 md:col-span-2">
+                            <Label>Tiang / Provider *</Label>
+                            <div v-for="(t, i) in form.tiang" :key="i" class="flex flex-wrap items-center gap-2">
+                                <Input v-model="t.n_provider" placeholder="Nama Provider" class="flex-1 min-w-[140px]" required />
+                                <label class="flex items-center gap-1 text-sm">
+                                    <input type="checkbox" v-model="t.odp" /> ODP ada
+                                </label>
+                                <select v-model="t.status_izin"
+                                    class="h-9 rounded-md border border-input bg-background text-foreground px-2 text-sm [&>option]:bg-background [&>option]:text-foreground">
+                                    <option value="">Izin: -</option>
+                                    <option value="berizin">Berizin</option>
+                                    <option value="tidak_berizin">Tidak berizin</option>
+                                </select>
+                                <Button type="button" variant="outline" size="sm" :disabled="form.tiang.length === 1"
+                                    @click="removeTiang(i)">Hapus</Button>
+                            </div>
+                            <Button type="button" variant="outline" size="sm" @click="addTiang">+ Tambah tiang</Button>
                         </div>
 
                         <!-- Sijali -->
                         <div class="space-y-2">
                             <Label for="add-sijali">Sijali</Label>
                             <Input id="add-sijali" v-model="form.sijali" placeholder="Nama jalan Sijali" />
-                        </div>
-
-                        <!-- Sijali Link -->
-                        <div class="space-y-2">
-                            <Label for="add-sijali_link">Link Detail Sijali</Label>
-                            <Input id="add-sijali_link" v-model="form.sijali_link" type="url"
-                                placeholder="https://sijali.surakarta.go.id/..." />
                         </div>
 
                         <!-- X (Longitude) -->
@@ -768,23 +746,6 @@ const formatDate = (dateStr) => {
                             <Input id="add-tgl_survey" v-model="form.tgl_survey" type="date"
                                 class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:[color-scheme:dark]" />
                         </div>
-                        <!-- Empty space for grid alignment -->
-                        <!-- User -->
-                        <div class="space-y-2">
-                            <Label for="add-id_user">User</Label>
-                            <Select v-model="form.id_user">
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Pilih User" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="null">Tidak ada</SelectItem>
-                                    <SelectItem v-for="user in users" :key="user.id" :value="String(user.id)">
-                                        {{ user.name }}
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
                         <!-- Foto -->
                         <div class="space-y-2 md:col-span-2">
                             <Label for="add-foto">Foto</Label>
@@ -812,18 +773,6 @@ const formatDate = (dateStr) => {
                 </DialogHeader>
                 <form @submit.prevent="submitEdit" class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Provinsi -->
-                        <div class="space-y-2">
-                            <Label for="edit-provinsi">Provinsi *</Label>
-                            <Input id="edit-provinsi" v-model="form.provinsi" placeholder="Nama Provinsi" required />
-                        </div>
-
-                        <!-- Kota -->
-                        <div class="space-y-2">
-                            <Label for="edit-kota">Kota *</Label>
-                            <Input id="edit-kota" v-model="form.kota" placeholder="Nama Kota" required />
-                        </div>
-
                         <!-- Kecamatan -->
                         <div class="space-y-2">
                             <Label for="edit-kecamatan">Kecamatan *</Label>
@@ -836,42 +785,36 @@ const formatDate = (dateStr) => {
                             <Input id="edit-kelurahan" v-model="form.kelurahan" placeholder="Nama Kelurahan" required />
                         </div>
 
-                        <!-- K Ref Wil -->
-                        <div class="space-y-2">
-                            <Label for="edit-k_ref_wil">K Ref Wil</Label>
-                            <Input id="edit-k_ref_wil" v-model="form.k_ref_wil" placeholder="Kode Referensi Wilayah" />
-                        </div>
-
                         <!-- Utilitas -->
                         <div class="space-y-2">
                             <Label for="edit-utilitas">Utilitas</Label>
                             <Input id="edit-utilitas" v-model="form.utilitas" placeholder="Jenis Utilitas" />
                         </div>
 
-                        <!-- N Provider -->
-                        <div class="space-y-2">
-                            <Label for="edit-n_provider">Nama Provider *</Label>
-                            <Input id="edit-n_provider" v-model="form.n_provider" placeholder="Nama Provider"
-                                required />
-                        </div>
-
-                        <!-- ODP -->
-                        <div class="space-y-2">
-                            <Label for="edit-odp">ODP</Label>
-                            <Input id="edit-odp" v-model="form.odp" placeholder="Optical Distribution Point" />
+                        <!-- Tiang (satu tiang = satu provider) -->
+                        <div class="space-y-2 md:col-span-2">
+                            <Label>Tiang / Provider *</Label>
+                            <div v-for="(t, i) in form.tiang" :key="i" class="flex flex-wrap items-center gap-2">
+                                <Input v-model="t.n_provider" placeholder="Nama Provider" class="flex-1 min-w-[140px]" required />
+                                <label class="flex items-center gap-1 text-sm">
+                                    <input type="checkbox" v-model="t.odp" /> ODP ada
+                                </label>
+                                <select v-model="t.status_izin"
+                                    class="h-9 rounded-md border border-input bg-background text-foreground px-2 text-sm [&>option]:bg-background [&>option]:text-foreground">
+                                    <option value="">Izin: -</option>
+                                    <option value="berizin">Berizin</option>
+                                    <option value="tidak_berizin">Tidak berizin</option>
+                                </select>
+                                <Button type="button" variant="outline" size="sm" :disabled="form.tiang.length === 1"
+                                    @click="removeTiang(i)">Hapus</Button>
+                            </div>
+                            <Button type="button" variant="outline" size="sm" @click="addTiang">+ Tambah tiang</Button>
                         </div>
 
                         <!-- Sijali -->
                         <div class="space-y-2">
                             <Label for="edit-sijali">Sijali</Label>
                             <Input id="edit-sijali" v-model="form.sijali" placeholder="Sijali" />
-                        </div>
-
-                        <!-- Sijali Link -->
-                        <div class="space-y-2">
-                            <Label for="edit-sijali_link">Link Detail Sijali</Label>
-                            <Input id="edit-sijali_link" v-model="form.sijali_link" type="url"
-                                placeholder="https://sijali.surakarta.go.id/..." />
                         </div>
 
                         <!-- X (Longitude) -->
@@ -890,22 +833,6 @@ const formatDate = (dateStr) => {
                         <div class="space-y-2">
                             <Label for="edit-tgl_survey">Tanggal Survey</Label>
                             <Input id="edit-tgl_survey" v-model="form.tgl_survey" type="date" />
-                        </div>
-
-                        <!-- User -->
-                        <div class="space-y-2">
-                            <Label for="edit-id_user">User</Label>
-                            <Select v-model="form.id_user">
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Pilih User" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="null">Tidak ada</SelectItem>
-                                    <SelectItem v-for="user in users" :key="user.id" :value="String(user.id)">
-                                        {{ user.name }}
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
                         </div>
 
                         <!-- Foto -->
@@ -929,6 +856,103 @@ const formatDate = (dateStr) => {
                         <Button type="submit">Update</Button>
                     </DialogFooter>
                 </form>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Import Dialog -->
+        <Dialog v-model:open="showImportDialog">
+            <DialogContent class="max-w-3xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                    <DialogTitle>Import Data Provider</DialogTitle>
+                    <DialogDescription>
+                        Unduh template, isi, lalu upload. File diperiksa dulu sebelum disimpan.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div class="space-y-4">
+                    <!-- 1. Template -->
+                    <div class="flex items-center justify-between rounded-lg border p-3">
+                        <div class="text-sm">
+                            <p class="font-medium">1. Unduh template</p>
+                            <p class="text-gray-500">Berisi kolom yang benar dan petunjuk pengisian.</p>
+                        </div>
+                        <Button as="a" :href="route('admin.provider.import.template')" variant="outline" size="sm">
+                            <Download class="w-4 h-4 mr-2" /> Template
+                        </Button>
+                    </div>
+
+                    <!-- 2. Upload -->
+                    <div class="space-y-2 rounded-lg border p-3">
+                        <p class="text-sm font-medium">2. Upload file</p>
+                        <div class="flex items-center gap-2">
+                            <Input type="file" accept=".xlsx,.xls" @change="handleImportFile" />
+                            <Button size="sm" :disabled="!importFile || importLoading" @click="checkImportFile">
+                                {{ importLoading && !importPreview ? 'Memeriksa...' : 'Cek File' }}
+                            </Button>
+                        </div>
+                        <p v-if="importError" class="text-sm text-red-600">{{ importError }}</p>
+                    </div>
+
+                    <!-- 3. Hasil pengecekan -->
+                    <div v-if="importPreview" class="space-y-3 rounded-lg border p-3">
+                        <p class="text-sm font-medium">3. Hasil pengecekan</p>
+                        <div class="flex flex-wrap gap-2 text-xs">
+                            <span class="rounded bg-gray-100 px-2 py-1 dark:bg-gray-800">Total {{ importPreview.summary.total }}</span>
+                            <span v-for="(meta, key) in importStatusLabel" :key="key"
+                                :class="['rounded px-2 py-1', meta.class]">
+                                {{ meta.text }} {{ importPreview.summary[key] }}
+                            </span>
+                        </div>
+
+                        <label v-if="importPreview.summary.timpa > 0" class="flex items-center gap-2 text-sm">
+                            <input type="checkbox" v-model="allowOverwrite" />
+                            Izinkan menimpa {{ importPreview.summary.timpa }} titik yang sudah ada
+                            (tiang lama tidak dihapus, status izin lama dipertahankan)
+                        </label>
+
+                        <div class="max-h-64 overflow-y-auto rounded border">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead class="w-16">Baris</TableHead>
+                                        <TableHead class="w-24">Status</TableHead>
+                                        <TableHead>Titik</TableHead>
+                                        <TableHead>Keterangan</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow v-for="r in importPreview.rows" :key="r.row">
+                                        <TableCell>{{ r.row }}</TableCell>
+                                        <TableCell>
+                                            <span :class="['rounded px-2 py-0.5 text-xs', importStatusLabel[r.status].class]">
+                                                {{ importStatusLabel[r.status].text }}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell class="text-xs">{{ r.label }}</TableCell>
+                                        <TableCell class="text-xs">
+                                            <p v-for="(m, i) in r.messages" :key="i">{{ m }}</p>
+                                            <span v-if="!r.messages.length" class="text-gray-400">-</span>
+                                        </TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                        </div>
+                        <p v-if="importPreview.truncated" class="text-xs text-gray-500">
+                            Hanya {{ importPreview.rows.length }} baris pertama yang ditampilkan (error ditampilkan lebih dulu).
+                        </p>
+                    </div>
+                </div>
+
+                <DialogFooter class="gap-2">
+                    <Button v-if="importPreview && (importPreview.summary.error + importPreview.summary.duplikat) > 0"
+                        as="a" :href="route('admin.provider.import.errors', importPreview.token)" variant="outline">
+                        Unduh baris bermasalah
+                    </Button>
+                    <Button variant="outline" @click="showImportDialog = false">Batal</Button>
+                    <Button :disabled="!importPreview || importWillSave === 0 || importLoading" @click="commitImport">
+                        {{ importLoading && importPreview ? 'Menyimpan...' : `Import ${importWillSave} baris` }}
+                    </Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
 

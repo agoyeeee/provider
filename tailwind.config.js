@@ -15,8 +15,13 @@ export default {
     	extend: {
     		fontFamily: {
     			sans: [
+    				'"Plus Jakarta Sans"',
     				'Figtree',
                     ...defaultTheme.fontFamily.sans
+                ],
+    			script: [
+    				'"AnacondaWildstyle"',
+    				'cursive'
                 ]
     		},
     		borderRadius: {
