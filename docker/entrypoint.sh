@@ -21,10 +21,8 @@ if [ -z "$APP_KEY" ]; then
     php artisan key:generate --force
 fi
 
-# Run migrations & seeders
-echo "Running migrations and seeders..."
-php artisan migrate --seed --force
-
+# Migrasi & seeder sengaja tidak dijalankan otomatis agar data production tidak berubah saat deploy.
+# Jika ada migrasi baru, jalankan manual: php artisan migrate --force
 
 # Clear and cache config
 echo "Optimizing application..."

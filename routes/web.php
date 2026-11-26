@@ -37,6 +37,7 @@ Route::middleware('auth')->group(function () {
 
         // Provider (Data Provider/Utilitas)
         Route::resource('provider', ProviderController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::delete('provider', [ProviderController::class, 'bulkDestroy'])->name('provider.bulk-destroy');
         Route::get('provider/export', [ProviderController::class, 'export'])->name('provider.export');
         Route::get('provider/import/template', [ProviderController::class, 'importTemplate'])->name('provider.import.template');
         Route::post('provider/import/preview', [ProviderController::class, 'importPreview'])->name('provider.import.preview');

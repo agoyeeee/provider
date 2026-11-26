@@ -4,6 +4,7 @@ import { Head, router, usePage } from '@inertiajs/vue3'
 import DashboardLayout from '@/Layouts/DashboardLayout.vue'
 import { Button } from '@/Components/ui/button'
 import { Input } from '@/Components/ui/input'
+import { Checkbox } from '@/Components/ui/checkbox'
 import { Label } from '@/Components/ui/label'
 import {
     Dialog,
@@ -323,6 +324,45 @@ const submitDelete = () => {
     })
 }
 
+// ---- Hapus massal ----
+const selectedIds = ref(new Set())
+const showBulkDeleteDialog = ref(false)
+const bulkDeleting = ref(false)
+
+// true / false / 'indeterminate' untuk baris di halaman aktif
+const pageSelection = computed(() => {
+    const n = paginatedProviders.value.filter((p) => selectedIds.value.has(p.id)).length
+    if (n === 0) return false
+    return n === paginatedProviders.value.length ? true : 'indeterminate'
+})
+
+const toggleRow = (id, checked) => {
+    checked ? selectedIds.value.add(id) : selectedIds.value.delete(id)
+}
+const togglePage = (checked) => paginatedProviders.value.forEach((p) => toggleRow(p.id, checked === true))
+const selectAll = () => (selectedIds.value = new Set(props.providers.map((p) => p.id)))
+const clearSelection = () => (selectedIds.value = new Set())
+
+// data/filter berubah: buang pilihan, agar baris tersembunyi tidak ikut terhapus
+watch(() => props.providers, clearSelection)
+
+const submitBulkDelete = () => {
+    const count = selectedIds.value.size
+    router.delete(route('admin.provider.bulk-destroy'), {
+        data: { ids: [...selectedIds.value] },
+        preserveState: true,
+        preserveScroll: true,
+        onStart: () => (bulkDeleting.value = true),
+        onFinish: () => (bulkDeleting.value = false),
+        onSuccess: () => {
+            showBulkDeleteDialog.value = false
+            clearSelection()
+            toast.success(`${count} data provider berhasil dihapus`)
+        },
+        onError: () => toast.error('Gagal menghapus data provider'),
+    })
+}
+
 // Apply filters
 const applyFilters = () => {
     router.get(
@@ -362,7 +402,7 @@ watch(searchQuery, (newValue) => {
 
 // Export data
 const exportData = () => {
-    window.location.href = route('provider.export')
+    window.location.href = route('admin.provider.export')
 }
 
 // Stats
@@ -540,10 +580,25 @@ const formatDate = (dateStr) => {
                 <!-- Table -->
                 <Card>
                     <CardContent class="p-0">
+                        <div v-if="selectedIds.size" class="flex flex-wrap items-center gap-3 border-b px-4 py-3 text-sm">
+                            <span><strong>{{ selectedIds.size }}</strong> data dipilih</span>
+                            <Button v-if="selectedIds.size < providers.length" variant="link" size="sm" @click="selectAll">
+                                Pilih semua {{ providers.length }} data
+                            </Button>
+                            <Button variant="outline" size="sm" @click="clearSelection">Batal pilih</Button>
+                            <Button variant="destructive" size="sm" class="ml-auto" @click="showBulkDeleteDialog = true">
+                                <Trash2 class="w-4 h-4 mr-2" />
+                                Hapus terpilih
+                            </Button>
+                        </div>
                         <div class="overflow-x-auto">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
+                                        <TableHead class="w-10">
+                                            <Checkbox :model-value="pageSelection" @update:model-value="togglePage"
+                                                aria-label="Pilih semua di halaman ini" />
+                                        </TableHead>
                                         <TableHead class="w-12">No</TableHead>
                                         <TableHead>Provinsi</TableHead>
                                         <TableHead>Kota</TableHead>
@@ -559,6 +614,11 @@ const formatDate = (dateStr) => {
                                 <TableBody>
                                     <TableRow v-for="(provider, index) in paginatedProviders" :key="provider.id"
                                         class="hover:bg-gray-50 dark:hover:bg-gray-800">
+                                        <TableCell>
+                                            <Checkbox :model-value="selectedIds.has(provider.id)"
+                                                @update:model-value="(c) => toggleRow(provider.id, c === true)"
+                                                :aria-label="`Pilih data ${provider.n_provider || provider.id}`" />
+                                        </TableCell>
                                         <TableCell class="font-medium">{{ (currentPage - 1) * pageSize + index + 1 }}
                                         </TableCell>
                                         <TableCell>{{ provider.provinsi || '-' }}</TableCell>
@@ -979,6 +1039,28 @@ const formatDate = (dateStr) => {
                 <DialogFooter>
                     <Button variant="outline" @click="showDeleteDialog = false">Batal</Button>
                     <Button variant="destructive" @click="submitDelete">Hapus</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Bulk Delete Dialog -->
+        <Dialog v-model:open="showBulkDeleteDialog">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Hapus {{ selectedIds.size }} Data Provider</DialogTitle>
+                    <DialogDescription>
+                        Apakah Anda yakin ingin menghapus {{ selectedIds.size }} data yang dipilih beserta tiang dan
+                        fotonya? Tindakan ini tidak dapat dibatalkan.
+                    </DialogDescription>
+                </DialogHeader>
+                <p v-if="selectedIds.size === providers.length" class="text-sm font-semibold text-red-600">
+                    Semua data yang sedang tampil (sesuai filter aktif) akan dihapus.
+                </p>
+                <DialogFooter>
+                    <Button variant="outline" :disabled="bulkDeleting" @click="showBulkDeleteDialog = false">Batal</Button>
+                    <Button variant="destructive" :disabled="bulkDeleting" @click="submitBulkDelete">
+                        {{ bulkDeleting ? 'Menghapus...' : `Hapus ${selectedIds.size} data` }}
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

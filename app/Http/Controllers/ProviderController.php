@@ -219,10 +219,32 @@ class ProviderController extends Controller
     }
 
     /**
+     * Hapus banyak titik sekaligus. Tiang ikut terhapus lewat cascade FK.
+     */
+    public function bulkDestroy(Request $request)
+    {
+        $ids = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer',
+        ])['ids'];
+
+        $photos = Provider::whereIn('id', $ids)->whereNotNull('foto')->pluck('foto')->all();
+        $deleted = Provider::whereIn('id', $ids)->delete();
+        // foto dihapus setelah baris terhapus, agar tidak hilang kalau query gagal
+        Storage::disk('public')->delete($photos);
+
+        return redirect()->back()
+            ->with('success', "{$deleted} data provider berhasil dihapus");
+    }
+
+    /**
      * Export data to Excel/CSV
      */
     public function export()
     {
+        // PhpSpreadsheet menyimpan semua sel di memory: 5.343 titik = ~120MB
+        ini_set('memory_limit', '512M');
+
         $book = $this->import->export(Provider::with('tiang')->orderBy('id')->get());
 
         return response()->streamDownload(function () use ($book) {

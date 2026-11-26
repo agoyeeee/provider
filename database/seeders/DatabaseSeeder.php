@@ -11,9 +11,9 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // ProviderSeeder (data dummy) sengaja tidak dipanggil.
         $this->call([
             UserSeeder::class,
-            ProviderSeeder::class,
         ]);
     }
 }
