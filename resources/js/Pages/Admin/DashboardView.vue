@@ -21,6 +21,7 @@ import {
   ArrowUpRight,
   Calendar,
   Database,
+  Download,
   Map as MapIcon,
   Layers,
   Plus,
@@ -140,6 +141,14 @@ const statsCards = computed(() => [
             <MapIcon class="h-3.5 w-3.5 text-emerald-600" />
             Peta Sebaran
           </Link>
+          <!-- <a> biasa: unduhan file tidak bisa lewat Inertia Link -->
+          <a
+            :href="route('admin.backup.database')"
+            class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50/50 hover:text-emerald-700"
+          >
+            <Download class="h-3.5 w-3.5 text-emerald-600" />
+            Backup Database
+          </a>
           <Link :href="route('admin.provider.index')">
             <Button
               size="sm"

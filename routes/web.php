@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BackupController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\ProfileController;
@@ -25,6 +26,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])
             ->middleware(['auth', 'verified'])
             ->name('dashboard');
+
+        // Backup database (.sql)
+        Route::get('backup/database', [BackupController::class, 'database'])->name('backup.database');
 
         // Users (Super Admin only)
         Route::resource('users', UserController::class)
